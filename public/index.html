@@ -1,0 +1,2083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stash TV — Content Scheduler</title>
+<style>
+:root {
+  --black:    #000000;
+  --dark:     #0f0f0f;
+  --card:     #1a1a1a;
+  --border:   #2a2a2a;
+  --gold:     #E8A820;
+  --gold-lt:  #F5C84A;
+  --white:    #FFFFFF;
+  --gray:     #9CA3AF;
+  --dim:      #555;
+  --p1:       #EF4444;
+  --p2:       #F97316;
+  --p3:       #EAB308;
+  --std:      #374151;
+  --green:    #22C55E;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--dark); color: var(--white); min-height: 100vh; }
+
+/* ── UPLOAD SCREEN ── */
+#upload-screen {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; background: var(--black);
+  padding: 40px 20px;
+}
+.brand-header { text-align: center; margin-bottom: 48px; }
+.brand-word {
+  font-size: 64px; font-weight: 800; color: var(--white);
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: -1px; line-height: 1;
+}
+.brand-box {
+  display: inline-block; border: 3px solid var(--white);
+  padding: 6px 28px; margin-top: 10px; position: relative;
+}
+.brand-box::before, .brand-box::after {
+  content: ''; position: absolute; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 3px; background: var(--black);
+}
+.brand-box::before { left: -3px; }
+.brand-box::after { right: -3px; }
+.brand-free { display: block; font-size: 13px; letter-spacing: 4px; color: var(--white); font-weight: 600; margin-bottom: 2px; }
+.brand-movies { display: block; font-size: 42px; font-weight: 900; color: var(--gold); letter-spacing: -1px; line-height: 1; }
+.brand-tv { display: block; font-size: 16px; font-weight: 700; color: var(--white); letter-spacing: 2px; margin-top: 2px; }
+.brand-sub { color: var(--gray); font-size: 14px; margin-top: 20px; letter-spacing: 0.5px; }
+
+.upload-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 40px; max-width: 540px; width: 100%;
+  text-align: center;
+}
+.upload-card h2 { font-size: 20px; color: var(--white); margin-bottom: 8px; }
+.upload-card p { color: var(--gray); font-size: 14px; line-height: 1.6; margin-bottom: 28px; }
+.drop-zone {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 48px 20px; cursor: pointer; transition: all 0.2s;
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.dragging { border-color: var(--gold); background: rgba(232,168,32,0.04); }
+.drop-icon { font-size: 40px; margin-bottom: 12px; }
+.drop-text { color: var(--gray); font-size: 14px; }
+.drop-text strong { color: var(--gold); }
+#csv-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.csv-format {
+  margin-top: 20px; background: rgba(255,255,255,0.03);
+  border-radius: 8px; padding: 14px 16px; text-align: left;
+}
+.csv-format h4 { color: var(--gray); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.csv-format code { font-size: 11px; color: #aaa; font-family: 'Courier New', monospace; line-height: 1.8; display: block; }
+.csv-format .highlight { color: var(--gold); font-weight: 600; }
+.demo-btn {
+  display: inline-block; margin-top: 20px; padding: 10px 24px;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 8px; color: var(--gray); font-size: 13px;
+  cursor: pointer; transition: all 0.2s;
+}
+.demo-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── APP SCREEN ── */
+#app-screen { display: none; }
+
+.app-header {
+  background: var(--black); border-bottom: 1px solid var(--border);
+  padding: 16px 28px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 100;
+}
+.header-brand { display: flex; align-items: center; gap: 16px; }
+.hb-logo { display: flex; flex-direction: column; align-items: flex-start; }
+.hb-stash { font-size: 22px; font-weight: 800; color: var(--white); font-family: Georgia, serif; line-height: 1; }
+.hb-tagline { font-size: 9px; color: var(--gray); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+.hb-divider { width: 1px; height: 32px; background: var(--border); }
+.hb-title { font-size: 15px; font-weight: 600; color: var(--white); }
+.hb-date { font-size: 12px; color: var(--gray); margin-top: 2px; }
+
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.btn {
+  padding: 8px 18px; border-radius: 8px; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s; border: none;
+}
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--gray); }
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+.btn-gold { background: var(--gold); color: var(--black); }
+.btn-gold:hover { background: var(--gold-lt); }
+.btn-outline { background: transparent; border: 1px solid var(--gold); color: var(--gold); }
+.btn-outline:hover { background: var(--gold); color: var(--black); }
+
+/* ── PRIORITY ALERT BANNER ── */
+.priority-banner {
+  background: #0f0f0f; border-bottom: 1px solid var(--border);
+  padding: 14px 28px; display: flex; gap: 16px; align-items: center;
+  flex-wrap: wrap;
+}
+.priority-banner .banner-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--gray); margin-right: 4px;
+}
+.p-alert {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--card); border-radius: 8px;
+  padding: 6px 14px; border: 1px solid var(--border);
+}
+.p-badge {
+  font-size: 10px; font-weight: 800; padding: 2px 6px;
+  border-radius: 4px; letter-spacing: 0.5px;
+}
+.p-badge.p1 { background: var(--p1); color: white; }
+.p-badge.p2 { background: var(--p2); color: white; }
+.p-badge.p3 { background: var(--p3); color: black; }
+.p-badge.std { background: var(--std); color: var(--gray); }
+.p-alert .count { font-size: 22px; font-weight: 800; line-height: 1; }
+.p-alert .p-label { font-size: 11px; color: var(--gray); }
+.p-alert .p-label strong { display: block; font-size: 13px; color: var(--white); }
+
+/* ── MAIN LAYOUT ── */
+.app-body { padding: 24px 28px; }
+
+/* ── SECTION HEADERS ── */
+.section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--gray);
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title::after { content: ''; flex: 0 0 60px; height: 1px; background: var(--border); }
+
+/* ── PRIORITY WATCHLIST ── */
+.watchlist { margin-bottom: 28px; }
+.watchlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+}
+.wl-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+}
+.wl-card-head {
+  padding: 10px 14px; display: flex; align-items: center;
+  gap: 10px; border-bottom: 1px solid var(--border);
+}
+.wl-card-head .ch-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.wl-card-head .ch-name { font-size: 13px; font-weight: 700; flex: 1; }
+.wl-card-head .wl-count {
+  font-size: 11px; color: var(--gray);
+  background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 10px;
+}
+.wl-row {
+  padding: 9px 14px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px;
+}
+.wl-row:last-child { border-bottom: none; }
+.wl-row .title { flex: 1; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wl-row .cic-tag { font-size: 10px; color: var(--p2); background: rgba(249,115,22,0.12); padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+
+.no-priorities {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 24px; text-align: center;
+  color: var(--gray); font-size: 14px;
+}
+.no-priorities .icon { font-size: 28px; margin-bottom: 8px; }
+
+/* ── CALENDAR ── */
+.calendar-section { margin-bottom: 28px; }
+.cal-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+table.cal { width: 100%; border-collapse: collapse; min-width: 860px; background: var(--card); }
+table.cal thead th {
+  background: #141414; border-bottom: 2px solid var(--border);
+  border-right: 1px solid var(--border); padding: 10px 8px;
+  text-align: center; font-size: 11px; font-weight: 700;
+  color: var(--gray); white-space: nowrap;
+}
+table.cal thead th.today-hd {
+  background: rgba(232,168,32,0.08); color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+table.cal thead th.channel-hd {
+  text-align: left; padding-left: 14px; min-width: 155px; width: 155px;
+  position: sticky; left: 0; z-index: 3; background: #141414;
+  border-right: 2px solid var(--border);
+}
+table.cal tbody tr { border-bottom: 1px solid var(--border); }
+table.cal tbody tr:last-child { border-bottom: none; }
+table.cal tbody td {
+  border-right: 1px solid var(--border); padding: 5px 4px;
+  vertical-align: top; min-height: 54px;
+}
+table.cal tbody td.ch-cell {
+  background: #141414; padding: 10px 14px;
+  position: sticky; left: 0; z-index: 1;
+  border-right: 2px solid var(--border);
+}
+.ch-cell-name { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.ch-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ch-count { font-size: 10px; margin-top: 3px; }
+table.cal tbody td.today-col { background: rgba(232,168,32,0.04); }
+table.cal tbody td.open-col {
+  background: repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(255,255,255,0.012) 4px, rgba(255,255,255,0.012) 8px);
+}
+.open-dash { text-align: center; color: var(--border); font-size: 14px; padding: 12px 0; }
+
+/* ── TITLE PILLS ── */
+.pill {
+  display: block; padding: 3px 6px; border-radius: 5px;
+  font-size: 10px; font-weight: 700; color: white;
+  margin-bottom: 3px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 130px; position: relative;
+  cursor: default;
+}
+.pill:last-child { margin-bottom: 0; }
+.pill-priority {
+  display: inline-block; font-size: 8px; font-weight: 800;
+  padding: 1px 3px; border-radius: 2px; margin-left: 3px;
+  vertical-align: middle; position: relative; top: -0.5px;
+}
+.pp-p1 { background: var(--p1); color: white; }
+.pp-p2 { background: var(--p2); color: white; }
+.pp-p3 { background: var(--p3); color: black; }
+
+/* ── CHANNEL LEGEND ── */
+.legend-strip {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 12px 0; margin-bottom: 16px;
+}
+.legend-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; color: white;
+}
+
+/* ── BACKLOG ── */
+.backlog-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 14px;
+}
+.bl-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+}
+.bl-head {
+  padding: 12px 18px; display: flex;
+  align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 6px;
+}
+.bl-head-left { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; }
+.bl-counts { display: flex; gap: 6px; font-size: 10px; flex-wrap: wrap; }
+.bl-count-badge { padding: 2px 7px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+.bl-body { padding: 10px 18px; }
+.bl-row {
+  padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex; align-items: center; gap: 8px; font-size: 13px;
+}
+.bl-row:last-child { border-bottom: none; }
+.bl-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--white); }
+.bl-row.blocked .bl-title { color: var(--dim); }
+.cic-badge { font-size: 9px; background: rgba(249,115,22,0.15); color: var(--p2); padding: 1px 5px; border-radius: 3px; flex-shrink: 0; font-weight: 700; }
+.no-bl { color: var(--dim); font-size: 12px; font-style: italic; padding: 8px 0; }
+
+/* ── FORMAT BADGES ── */
+.format-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+.fmt-movie { background: rgba(99,102,241,0.15); color: #818cf8; }
+.fmt-show  { background: rgba(14,165,233,0.15); color: #38bdf8; }
+
+/* ── DISPUTE STATUS BADGES ── */
+.dispute-badge { font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.3px; }
+.dispute-badge.resolved { background: rgba(34,197,94,0.12); color: #22c55e; }
+.dispute-badge.review   { background: rgba(234,179,8,0.12); color: #eab308; }
+.dispute-badge.rejected { background: rgba(239,68,68,0.12); color: #ef4444; }
+
+/* ── FOOTER ── */
+.app-footer {
+  border-top: 1px solid var(--border); padding: 20px 28px;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: gap; background: var(--black);
+}
+.footer-brand { font-size: 12px; color: var(--dim); }
+.footer-brand strong { color: var(--gray); }
+
+/* ── PRIORITY COLUMN HINT ── */
+.no-priority-hint {
+  background: rgba(232,168,32,0.07); border: 1px solid rgba(232,168,32,0.25);
+  border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
+  font-size: 13px; color: #ccc; line-height: 1.6;
+}
+.no-priority-hint strong { color: var(--gold); }
+.no-priority-hint code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+
+/* ── TABS ── */
+.tab-bar { display: flex; gap: 4px; margin-bottom: 16px; }
+.tab {
+  padding: 7px 16px; border-radius: 7px; font-size: 12px; font-weight: 600;
+  cursor: pointer; border: 1px solid transparent; transition: all 0.15s; color: var(--gray);
+}
+.tab.active { background: var(--gold); color: var(--black); border-color: var(--gold); }
+.tab:not(.active):hover { border-color: var(--border); color: var(--white); }
+
+/* ── WEEK LABEL ── */
+.week-label {
+  font-size: 12px; font-weight: 700; color: var(--gray);
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 10px;
+}
+.week-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── TOOLTIP ── */
+.pill[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 5px); left: 0;
+  background: #111; border: 1px solid var(--border); color: #ddd;
+  padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 400;
+  white-space: nowrap; z-index: 200; pointer-events: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--dark); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* ── WEEKLY SUMMARY ── */
+.summary-section { border-bottom: 1px solid var(--border); background: #0a0a0a; padding: 20px 28px; }
+.summary-heading {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--gray); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 12px;
+}
+.summary-heading span { color: var(--gold); }
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+.summary-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.summary-card-header {
+  display: flex; align-items: center; gap: 7px;
+}
+.summary-card-header .ch-name {
+  font-size: 12px; font-weight: 700; color: var(--white);
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.summary-weeks {
+  display: flex; gap: 6px; margin-top: 6px;
+}
+.summary-week {
+  flex: 1; text-align: center; background: rgba(255,255,255,0.04);
+  border-radius: 6px; padding: 8px 6px; min-width: 0;
+}
+.summary-week.total-wk { background: rgba(255,255,255,0.02); }
+.summary-week .wk-label {
+  font-size: 9px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--dim); margin-bottom: 5px;
+  white-space: nowrap;
+}
+.summary-week .wk-count {
+  font-size: 28px; font-weight: 800; line-height: 1; display: block;
+}
+.wk-count.c-zero  { color: #ef4444; }
+.wk-count.c-low   { color: var(--gold); }
+.wk-count.c-good  { color: #22c55e; }
+.wk-count.c-total { color: var(--white); }
+.summary-bar-wrap { height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-top: 2px; }
+.summary-bar { height: 4px; border-radius: 2px; transition: width 0.4s; }
+
+/* ── VELOCITY DASHBOARD ── */
+.velocity-section { border-bottom: 1px solid var(--border); background: #0a0a0a; padding: 20px 28px; }
+.velocity-heading {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--gray); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+.velocity-heading span { color: var(--gold); }
+
+/* KPI row */
+.kpi-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.kpi-card {
+  flex: 1; min-width: 160px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px; text-align: center;
+}
+.kpi-card.kpi-accent { border-color: rgba(232,168,32,0.35); }
+.kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); margin-bottom: 8px; }
+.kpi-value { font-size: 36px; font-weight: 800; line-height: 1; }
+.kpi-sub { font-size: 11px; color: var(--dim); margin-top: 6px; line-height: 1.4; }
+.kpi-sub strong { color: var(--gray); }
+.kpi-delta { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-top: 6px; }
+.kpi-delta.up   { background: rgba(34,197,94,0.12); color: #22c55e; }
+.kpi-delta.down { background: rgba(239,68,68,0.12); color: #ef4444; }
+.kpi-delta.flat { background: rgba(255,255,255,0.06); color: var(--dim); }
+
+/* Processing time gauge */
+.gauge-row { display: flex; gap: 8px; margin-top: 10px; height: 6px; border-radius: 3px; overflow: hidden; }
+.gauge-seg { height: 100%; border-radius: 3px; transition: width 0.4s; }
+
+/* Utilization bar in channel grid */
+.util-bar-wrap { height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; margin-top: 8px; position: relative; }
+.util-bar { height: 5px; border-radius: 3px; transition: width 0.4s; }
+.util-marker { position: absolute; top: -2px; width: 2px; height: 9px; background: var(--white); border-radius: 1px; opacity: 0.5; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .app-header { padding: 12px 16px; }
+  .app-body { padding: 16px; }
+  .header-actions { gap: 6px; }
+  .btn { padding: 7px 12px; font-size: 12px; }
+}
+
+/* ── PRINT / PDF STYLES ── */
+@media print {
+  /* Reset dark theme to clean white for paper */
+  :root {
+    --black: #ffffff; --dark: #ffffff; --card: #ffffff;
+    --border: #e0e0e0; --white: #111111; --gray: #555555; --dim: #888888;
+  }
+  body { background: #fff !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Hide interactive elements */
+  #upload-screen, .header-actions, #cloud-loading, .btn, .drop-zone, .upload-key-section, .demo-btn { display: none !important; }
+
+  /* Force app screen visible */
+  #app-screen { display: block !important; }
+
+  /* Header: compact for print */
+  .app-header {
+    background: #fff !important; border-bottom: 2px solid #111 !important;
+    padding: 12px 20px !important; position: static !important;
+  }
+  .hb-stash { color: #111 !important; }
+  .hb-tagline, .hb-date { color: #555 !important; }
+  .hb-divider { background: #ccc !important; }
+  #cloud-status { display: none !important; }
+
+  /* Velocity dashboard */
+  .velocity-section { background: #fff !important; border-bottom: 2px solid #e0e0e0 !important; padding: 16px 20px !important; }
+  .kpi-card { border: 1px solid #ddd !important; background: #fafafa !important; }
+  .kpi-card.kpi-accent { border-color: #E8A820 !important; }
+
+  /* Summary cards */
+  .summary-card { border: 1px solid #ddd !important; background: #fafafa !important; }
+  .summary-week { background: #f5f5f5 !important; }
+
+  /* Priority banner */
+  .priority-banner { background: #fafafa !important; border-bottom: 1px solid #e0e0e0 !important; }
+  .p-alert { background: #f5f5f5 !important; border: 1px solid #ddd !important; }
+
+  /* Calendar */
+  table.cal { background: #fff !important; }
+  table.cal thead th { background: #f5f5f5 !important; color: #333 !important; border-color: #ddd !important; }
+  table.cal thead th.channel-hd { background: #f0f0f0 !important; }
+  table.cal thead th.today-hd { background: #fff8e6 !important; color: #b8860b !important; }
+  table.cal tbody td { border-color: #e0e0e0 !important; }
+  table.cal tbody td.ch-cell { background: #f5f5f5 !important; }
+  table.cal tbody td.today-col { background: #fffdf0 !important; }
+  .pill { color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Backlog */
+  .bl-card { border: 1px solid #ddd !important; background: #fafafa !important; }
+  .bl-head { border-bottom: 1px solid #ddd !important; }
+
+  /* Watchlist */
+  .wl-card { border: 1px solid #ddd !important; background: #fafafa !important; }
+
+  /* Footer */
+  .app-footer { background: #fff !important; border-top: 1px solid #ddd !important; }
+
+  /* Page breaks */
+  .velocity-section { page-break-after: auto; }
+  .calendar-section { page-break-before: auto; }
+  .bl-card { page-break-inside: avoid; }
+  .summary-card { page-break-inside: avoid; }
+  .wl-card { page-break-inside: avoid; }
+
+  /* Color badges: force color printing */
+  .p-badge, .cic-badge, .dispute-badge, .format-badge, .bl-count-badge, .legend-chip, .ch-dot, .gauge-seg, .summary-bar, .util-bar {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Expand all calendar tabs */
+  #cal-week1, #cal-week2 { display: block !important; }
+  .tab-bar { display: none !important; }
+
+  /* Print timestamp */
+  .app-footer::after {
+    content: ' · Printed ' attr(data-print-date);
+    font-size: 11px; color: #999;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ UPLOAD SCREEN ══════════════ -->
+<div id="upload-screen">
+  <div class="brand-header">
+    <div class="brand-word">stash</div>
+    <div style="margin-top:10px">
+      <div class="brand-box">
+        <span class="brand-free">FREE</span>
+        <span class="brand-movies">MOVIES</span>
+        <span class="brand-tv">&amp; TV</span>
+      </div>
+    </div>
+    <div class="brand-sub">Content Scheduler &amp; Priority Tracker</div>
+  </div>
+
+  <div class="upload-card">
+    <h2>Upload Your HIT Tracking CSV</h2>
+    <p>Team lead uploads the latest CSV export with the upload key. The schedule is saved to the cloud — anyone with the link sees the live schedule instantly.</p>
+
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="csv-input" accept=".csv" />
+      <div class="drop-icon">📂</div>
+      <div class="drop-text">
+        <strong>Click to choose a CSV</strong> or drag &amp; drop it here
+      </div>
+    </div>
+
+    <div class="csv-format">
+      <h4>Expected CSV Columns</h4>
+      <code>Channel, Title Name, Visibility, <span class="highlight">Priority Level</span>, Restrictions, Upload Date, Publish Date, Takedown Request</code>
+      <code style="margin-top:6px;color:#777">Priority Level values: <span class="highlight">P1</span> · <span class="highlight">P2</span> · <span class="highlight">P3</span> · <span class="highlight">Standard</span> (or blank = Standard)</code>
+    </div>
+
+    <div class="upload-key-section" style="margin-top:20px;padding:14px 16px;background:rgba(255,255,255,0.03);border-radius:8px;text-align:left;">
+      <label style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gray);font-weight:700;display:block;margin-bottom:6px;">Upload Key (team lead only)</label>
+      <input type="password" id="upload-key-input" placeholder="Enter upload key to save to cloud" style="width:100%;padding:10px 14px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--white);font-size:13px;outline:none;" />
+      <div style="font-size:11px;color:var(--dim);margin-top:6px;">Leave blank to preview locally without saving. Enter the key to push data live for the whole team.</div>
+    </div>
+
+    <button class="demo-btn" onclick="loadDemo()">▶ Preview with Demo Data</button>
+  </div>
+
+  <!-- Loading indicator (shown while fetching from API) -->
+  <div id="cloud-loading" style="display:none;text-align:center;margin-top:24px;color:var(--gray);font-size:14px;">
+    <div style="font-size:28px;margin-bottom:8px;">⏳</div>
+    Loading saved schedule from cloud...
+  </div>
+</div>
+
+<!-- ══════════════ APP SCREEN ══════════════ -->
+<div id="app-screen">
+
+  <!-- Header -->
+  <div class="app-header">
+    <div class="header-brand">
+      <div class="hb-logo">
+        <div class="hb-stash">stash</div>
+        <div class="hb-tagline">Free Movies &amp; TV</div>
+      </div>
+      <div class="hb-divider"></div>
+      <div>
+        <div class="hb-title">Content Scheduler</div>
+        <div class="hb-date" id="hb-date"></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span id="cloud-status" style="font-size:11px;color:var(--dim);margin-right:6px;"></span>
+      <button class="btn btn-ghost" onclick="reupload()">↑ New CSV</button>
+      <button class="btn btn-outline" onclick="exportSnapshot()">⬇ Export Snapshot</button>
+      <button class="btn btn-gold" onclick="printReport()">🖨 Print / PDF</button>
+    </div>
+  </div>
+
+  <!-- Priority Alert Banner -->
+  <div class="priority-banner" id="priority-banner"></div>
+
+  <!-- Weekly Publishing Summary -->
+  <div class="velocity-section" id="weekly-summary"></div>
+
+  <!-- Body -->
+  <div class="app-body">
+
+    <!-- Priority Watchlist -->
+    <div class="watchlist" id="watchlist-section">
+      <div class="section-head">
+        <div class="section-title">🚨 Priority Watchlist — Unscheduled Titles</div>
+      </div>
+      <div id="watchlist-content"></div>
+    </div>
+
+    <!-- Channel Legend -->
+    <div class="legend-strip" id="legend-strip"></div>
+
+    <!-- Calendar Tabs -->
+    <div class="calendar-section">
+      <div class="section-head">
+        <div class="section-title">📅 2-Week Publishing Calendar</div>
+        <div id="no-priority-hint"></div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab active" onclick="switchTab(0, this)">Week 1</div>
+        <div class="tab" onclick="switchTab(1, this)">Week 2</div>
+        <div class="tab" onclick="switchTab(2, this)">Both Weeks</div>
+      </div>
+      <div id="cal-week1"></div>
+      <div id="cal-week2"></div>
+    </div>
+
+    <!-- Backlog -->
+    <div>
+      <div class="section-head">
+        <div class="section-title">📋 Draft Backlog by Channel</div>
+      </div>
+      <div class="backlog-grid" id="backlog-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="app-footer">
+    <div class="footer-brand">
+      <strong>stash</strong> · Content Scheduler · Data from HIT Tracking sheet
+    </div>
+    <div style="font-size:12px;color:var(--dim)">
+      CIC = active Copyright ID Claim · Schedule auto-syncs to cloud for the team
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════
+const CHANNEL_COLORS = {
+  'stash movies':                    '#6366f1',
+  'stash en français':               '#3b82f6',
+  'stash en francais':               '#3b82f6',
+  'stash auf deutsch':               '#d97706',
+  'stash – lgbtq cinema':            '#ec4899',
+  'stash - lgbtq cinema on youtube': '#ec4899',
+  'stash – found footage horror':    '#ef4444',
+  'stash - found footage horror':    '#ef4444',
+  'stash - found footage horror on youtube': '#ef4444',
+  'stash – suspense and thriller':   '#8b5cf6',
+  'stash - suspense and thriller on youtube': '#8b5cf6',
+  'stash – war & military':          '#65a30d',
+  'stash - war & military':          '#65a30d',
+  'stash – action':                  '#f97316',
+  'stash - action':                  '#f97316',
+  'stash – sci-fi cinema':           '#0891b2',
+  'stash - sci-fi cinema':           '#0891b2',
+  'stash en espanol':                '#dc2626',
+  'stash en español':                '#dc2626',
+  'stash – thrills and chills':      '#7c3aed',
+  'stash - thrills and chills':      '#7c3aed',
+  'stash – black stories':           '#b45309',
+  'stash - black stories':           '#b45309',
+};
+const DEFAULT_COLORS = ['#6366f1','#3b82f6','#d97706','#ec4899','#ef4444','#8b5cf6','#65a30d','#f97316','#0891b2','#dc2626','#7c3aed','#b45309','#0d9488','#9333ea'];
+
+const P_ORDER = { 'P1': 0, 'P2': 1, 'P3': 2, 'Standard': 3 };
+const P_LABEL = { 'P1': 'P1', 'P2': 'P2', 'P3': 'P3', 'Standard': 'STD' };
+const P_CLASS = { 'P1': 'p1', 'P2': 'p2', 'P3': 'p3', 'Standard': 'std' };
+
+// ═══════════════════════════════════════════════
+//  EPISODE DETECTION
+// ═══════════════════════════════════════════════
+// Detects episodic naming like "Show S1E3", "Show - Episode 5",
+// "Show - Season 2, Episode 4", "Show S1E16–18" (range)
+const EP_PATTERNS = [
+  // S#E# with optional range: "Show S1E16–18" or "Show S1E1"
+  /^(.+?)\s+S(\d+)E(\d+)(?:\s*[-–]\s*(?:S\d+)?E?(\d+))?$/i,
+  // "Show - Season #, Episode #"
+  /^(.+?)\s*[-–]\s*Season\s+(\d+)\s*,?\s*Episode\s+(\d+)$/i,
+  // "Show - Episode #" or "Show - Ep #" or "Show: Episode #"
+  /^(.+?)\s*[-–:]\s*[Ee](?:p|pisode)\s+(\d+)$/i,
+  // Trailing "Ep #" without separator: "Something Ep 10"
+  /^(.+?)\s+[Ee]p\s+(\d+)$/i,
+];
+
+function parseEpisodeInfo(title) {
+  for (const pat of EP_PATTERNS) {
+    const m = title.match(pat);
+    if (m) {
+      const showName = m[1].trim().replace(/[-–:,\s]+$/, '').trim();
+      return {
+        isEpisode: true,
+        showName,
+        season:   m[2] ? parseInt(m[2], 10) : null,
+        epStart:  m[3] ? parseInt(m[3], 10) : (m[2] ? parseInt(m[2], 10) : null),
+        epEnd:    m[4] ? parseInt(m[4], 10) : null,
+      };
+    }
+  }
+  return { isEpisode: false, showName: null, season: null, epStart: null, epEnd: null };
+}
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let APP = { items: [], channels: [], hasPriority: false };
+let channelColorMap = {};
+let colorIdx = 0;
+
+// ═══════════════════════════════════════════════
+//  CSV PARSER  (RFC 4180)
+// ═══════════════════════════════════════════════
+function parseCSV(text) {
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  const t = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i], n = t[i+1];
+    if (inQ) {
+      if (c === '"' && n === '"') { field += '"'; i++; }
+      else if (c === '"') { inQ = false; }
+      else { field += c; }
+    } else {
+      if (c === '"') { inQ = true; }
+      else if (c === ',') { row.push(field.trim()); field = ''; }
+      else if (c === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; }
+      else { field += c; }
+    }
+  }
+  if (field || row.length) { row.push(field.trim()); rows.push(row); }
+  return rows.filter(r => r.some(f => f));
+}
+
+function parseDate(str) {
+  if (!str) return null;
+  // Handle "January 1, 2030" style and "2030-01-01" style
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function normalizePriority(val) {
+  if (!val) return 'Standard';
+  const v = val.trim().toUpperCase();
+  if (v === 'P1' || v === '1' || v === 'PRIORITY 1' || v === 'PRIORITY1') return 'P1';
+  if (v === 'P2' || v === '2' || v === 'PRIORITY 2' || v === 'PRIORITY2') return 'P2';
+  if (v === 'P3' || v === '3' || v === 'PRIORITY 3' || v === 'PRIORITY3') return 'P3';
+  return 'Standard';
+}
+
+function getChannelColor(name) {
+  const key = name.toLowerCase().replace(/\s+/g,' ').trim();
+  if (channelColorMap[key]) return channelColorMap[key];
+  // Try fuzzy match
+  for (const [pattern, color] of Object.entries(CHANNEL_COLORS)) {
+    if (key.includes(pattern) || pattern.includes(key)) {
+      channelColorMap[key] = color;
+      return color;
+    }
+  }
+  const color = DEFAULT_COLORS[colorIdx % DEFAULT_COLORS.length];
+  colorIdx++;
+  channelColorMap[key] = color;
+  return color;
+}
+
+function shortChannel(name) {
+  return name
+    .replace(/,\s*thumbnail experiment/gi, '')
+    .replace(/,\s*thumb(nail)?\s*exp(eriment)?/gi, '')
+    .replace(/Stash\s*-\s*/i, '')
+    .replace(/Stash\s*–\s*/i, '')
+    .replace(/ on YouTube/i, '')
+    .replace(/Stash /i, '')
+    .trim() || name;
+}
+
+// ═══════════════════════════════════════════════
+//  DATA PROCESSOR
+// ═══════════════════════════════════════════════
+function processCSV(rows) {
+  if (rows.length < 2) return;
+  const headers = rows[0].map(h => h.toLowerCase().trim());
+
+  const colIdx = (names) => {
+    for (const n of names) {
+      const i = headers.indexOf(n);
+      if (i !== -1) return i;
+    }
+    return -1;
+  };
+
+  const iCh   = colIdx(['channel']);
+  const iTitle = colIdx(['title name', 'title']);
+  const iVis  = colIdx(['visibility']);
+  const iRestr = colIdx(['restrictions']);
+  const iPub  = colIdx(['publish date']);
+  const iPri  = colIdx(['priority level', 'priority', 'priority_level', 'p level']);
+  const iTake = colIdx(['takedown request']);
+  const iCreated = colIdx(['created date', 'created']);
+  const iUpload  = colIdx(['upload date', 'uploaded', 'upload']);
+  const iDaysBtwn = colIdx(['days between upload & publish', 'days between upload and publish', 'processing days', 'days']);
+  const iCopyright = colIdx(['copyright claims?', 'copyright claims', 'copyright issues', 'copyright']);
+  const iDisputeStatus = colIdx(['music copyright dispute status', 'dispute status', 'copyright dispute status']);
+  const iFormat = colIdx(['title format', 'format']);
+
+  // hasPriority = true if the column header exists (even if values are mostly blank)
+  const hasPriority = iPri !== -1;
+  APP.hasPriority = hasPriority;
+
+  const items = [];
+  const channelSet = new Set();
+
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const get = (i) => (i !== -1 && row[i] !== undefined) ? row[i].trim() : '';
+
+    // Normalize channel: strip variant suffixes so titles group under the base channel
+    const channel    = get(iCh)
+      .replace(/,\s*thumbnail experiment/gi, '')
+      .replace(/,\s*thumb(nail)?\s*exp(eriment)?/gi, '')
+      .replace(/\s+on YouTube$/i, '')
+      .trim();
+    const title      = get(iTitle);
+    const visibility = get(iVis).toLowerCase();
+    const restrictions = get(iRestr);
+    const publishStr = get(iPub);
+    const priority   = normalizePriority(get(iPri));
+    const takedown   = get(iTake);
+    const createdStr = get(iCreated);
+    const uploadStr  = get(iUpload);
+    const daysBtwnStr = get(iDaysBtwn);
+    const copyrightVal = get(iCopyright).toLowerCase();
+    const disputeStatus = get(iDisputeStatus);
+    const titleFormat = get(iFormat);
+
+    if (!channel || !title) continue;
+
+    // Episode detection — parse S#E#, "Episode #", etc.
+    const epInfo = parseEpisodeInfo(title);
+
+    // Parse dates
+    const publishDate = parseDate(publishStr);
+    const createdDate = parseDate(createdStr);
+    const uploadDate  = parseDate(uploadStr);
+    const daysBetween = daysBtwnStr ? parseInt(daysBtwnStr, 10) : null;
+    const isPlaceholder = publishDate && publishDate.getFullYear() >= 2029;
+
+    // CIC detection: prefer the explicit "Copyright Claims?" column (Yes/No),
+    // fall back to checking the Restrictions column for "CIC" text
+    const hasCIC = (iCopyright !== -1)
+      ? (copyrightVal === 'yes' || copyrightVal === 'true')
+      : /cic/i.test(restrictions);
+
+    const isRemoved = visibility === 'removed';
+    const isBlocked = visibility === 'blocked';
+    const isPublic  = visibility === 'public';
+    const isDraft   = visibility === 'draft' || visibility === '';
+    const isUnlisted = visibility === 'unlisted';
+
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    let status = 'other';
+    if (isRemoved) status = 'removed';
+    else if (isBlocked) status = 'draft_blocked';
+    else if (isDraft) status = hasCIC ? 'draft_blocked' : 'draft';
+    else if (isPublic && publishDate && publishDate >= today && !isPlaceholder) status = 'scheduled';
+    else if (isPublic) status = 'published';
+    else if (isUnlisted) status = 'unlisted';
+
+    channelSet.add(channel);
+    // Determine content type: if Title Format column says "Movie" use that,
+    // if it says "Show" or if episode pattern detected, it's an episode
+    const isEpisode = epInfo.isEpisode || (titleFormat || '').toLowerCase() === 'show';
+    const contentType = (titleFormat || '').toLowerCase() === 'movie' ? 'movie'
+                      : isEpisode ? 'episode' : '';
+
+    items.push({ channel, title, visibility, restrictions, publishDate, createdDate, uploadDate, daysBetween, priority, hasCIC, disputeStatus, titleFormat, contentType, isEpisode, showName: epInfo.showName, season: epInfo.season, epStart: epInfo.epStart, epEnd: epInfo.epEnd, status, takedown });
+  }
+
+  APP.items = items;
+  APP.channels = [...channelSet].sort();
+}
+
+// ═══════════════════════════════════════════════
+//  DATE UTILITIES
+// ═══════════════════════════════════════════════
+function getWeekDates(weekOffset = 0) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dayOfWeek = today.getDay(); // 0=Sun
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7) + weekOffset * 7);
+  return Array.from({length: 7}, (_, i) => {
+    const d = new Date(monday); d.setDate(monday.getDate() + i); return d;
+  });
+}
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDayHeader(d) {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${days[d.getDay()]}<br><span style="font-size:13px;color:var(--white)">${months[d.getMonth()]} ${d.getDate()}</span>`;
+}
+
+function todayKey() {
+  return dateKey(new Date());
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER LEGEND
+// ═══════════════════════════════════════════════
+function renderLegend() {
+  const strip = document.getElementById('legend-strip');
+  strip.innerHTML = APP.channels.map(ch => {
+    const color = getChannelColor(ch);
+    return `<span class="legend-chip" style="background:${color}">${shortChannel(ch)}</span>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER WEEKLY SUMMARY  (C-Suite velocity dashboard)
+// ═══════════════════════════════════════════════
+function renderWeeklySummary() {
+  const el = document.getElementById('weekly-summary');
+  const MAX = 3; // titles/channel/week target
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // ── Week ranges ──
+  const lastWkDates = getWeekDates(-1);
+  const thisWkDates = getWeekDates(0);
+  const nextWkDates = getWeekDates(1);
+  const lastWkKeys = lastWkDates.map(dateKey);
+  const thisWkKeys = thisWkDates.map(dateKey);
+  const nextWkKeys = nextWkDates.map(dateKey);
+
+  function weekLabel(dates) {
+    return `${months[dates[0].getMonth()]} ${dates[0].getDate()}–${dates[6].getDate()}`;
+  }
+
+  // ── Count published/scheduled per channel per week ──
+  // "Published" = public with a publish date in that week range
+  // Items with future publish dates are "scheduled", past = "published"
+  const counts = {};
+  APP.channels.forEach(ch => { counts[ch] = { last: 0, curr: 0, next: 0 }; });
+
+  APP.items.filter(i => (i.status === 'scheduled' || i.status === 'published') && i.publishDate).forEach(item => {
+    const dk = dateKey(item.publishDate);
+    if (!counts[item.channel]) counts[item.channel] = { last: 0, curr: 0, next: 0 };
+    if (lastWkKeys.includes(dk)) counts[item.channel].last++;
+    if (thisWkKeys.includes(dk)) counts[item.channel].curr++;
+    if (nextWkKeys.includes(dk)) counts[item.channel].next++;
+  });
+
+  // ── Totals ──
+  const totalLast = APP.channels.reduce((s, ch) => s + (counts[ch]?.last || 0), 0);
+  const totalCurr = APP.channels.reduce((s, ch) => s + (counts[ch]?.curr || 0), 0);
+  const totalNext = APP.channels.reduce((s, ch) => s + (counts[ch]?.next || 0), 0);
+  const theoreticalMax = APP.channels.length * MAX;
+
+  // ── Newly added this month (by Created Date) ──
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const newThisMonth = APP.items.filter(i => i.createdDate && i.createdDate >= monthStart).length;
+
+  // ── Content type breakdown (Movies vs Episodes) ──
+  // contentType is derived from Title Format column + S#E# episode detection
+  const publishedOrScheduled = APP.items.filter(i => i.status === 'published' || i.status === 'scheduled');
+  const draftItems = APP.items.filter(i => i.status === 'draft' || i.status === 'draft_blocked');
+
+  const releasedMovies  = publishedOrScheduled.filter(i => i.contentType === 'movie').length;
+  const releasedEpisodes = publishedOrScheduled.filter(i => i.contentType === 'episode').length;
+  const backlogMovies   = draftItems.filter(i => i.contentType === 'movie').length;
+  const backlogEpisodes = draftItems.filter(i => i.contentType === 'episode').length;
+
+  // Unique shows (episode groups)
+  const allEpisodes = APP.items.filter(i => i.isEpisode && i.showName);
+  const uniqueShows = new Set(allEpisodes.map(i => i.channel + '||' + i.showName));
+  const releasedShows = new Set(publishedOrScheduled.filter(i => i.isEpisode && i.showName).map(i => i.channel + '||' + i.showName));
+  const backlogShows  = new Set(draftItems.filter(i => i.isEpisode && i.showName).map(i => i.channel + '||' + i.showName));
+
+  const hasContentTypeData = APP.items.some(i => i.contentType);
+
+  // ── CIC overview ──
+  const cicTotal     = APP.items.filter(i => i.hasCIC).length;
+  const cicDrafts    = APP.items.filter(i => i.hasCIC && (i.status === 'draft' || i.status === 'draft_blocked')).length;
+  const cicResolved  = APP.items.filter(i => i.hasCIC && (i.disputeStatus || '').toLowerCase().includes('resolved')).length;
+  const cicReview    = APP.items.filter(i => i.hasCIC && (i.disputeStatus || '').toLowerCase().includes('review')).length;
+  const cicRejected  = APP.items.filter(i => i.hasCIC && (i.disputeStatus || '').toLowerCase().includes('rejected')).length;
+
+  // ── Processing time stats (Days Between Upload & Publish) ──
+  const validProcessing = APP.items.filter(i => i.daysBetween !== null && !isNaN(i.daysBetween) && i.daysBetween >= 0);
+  const processingDays = validProcessing.map(i => i.daysBetween);
+  const avgDays = processingDays.length
+    ? Math.round(processingDays.reduce((a, b) => a + b, 0) / processingDays.length)
+    : null;
+  const medianDays = processingDays.length
+    ? processingDays.sort((a, b) => a - b)[Math.floor(processingDays.length / 2)]
+    : null;
+
+  // Split by CIC status
+  const cicProcessing = validProcessing.filter(i => i.hasCIC).map(i => i.daysBetween);
+  const cleanProcessing = validProcessing.filter(i => !i.hasCIC).map(i => i.daysBetween);
+  const cicMedian = cicProcessing.length
+    ? cicProcessing.sort((a, b) => a - b)[Math.floor(cicProcessing.length / 2)]
+    : null;
+  const cleanMedian = cleanProcessing.length
+    ? cleanProcessing.sort((a, b) => a - b)[Math.floor(cleanProcessing.length / 2)]
+    : null;
+
+  // Bucket processing times
+  let b07 = 0, b814 = 0, b1530 = 0, b3160 = 0, b60p = 0;
+  processingDays.forEach(d => {
+    if (d <= 7) b07++;
+    else if (d <= 14) b814++;
+    else if (d <= 30) b1530++;
+    else if (d <= 60) b3160++;
+    else b60p++;
+  });
+  const pTotal = processingDays.length || 1;
+
+  // ── Week-over-week delta ──
+  const wowDelta = totalCurr - totalLast;
+  const wowClass = wowDelta > 0 ? 'up' : wowDelta < 0 ? 'down' : 'flat';
+  const wowSign  = wowDelta > 0 ? '+' : '';
+
+  // ── Capacity utilization ──
+  const utilPct = theoreticalMax > 0 ? Math.round((totalCurr / theoreticalMax) * 100) : 0;
+
+  // ── Channels at 0 this week ──
+  const silentChannels = APP.channels.filter(ch => (counts[ch]?.curr || 0) === 0);
+
+  // ── count class helper ──
+  function countClass(n) {
+    if (n === 0) return 'c-zero';
+    if (n < MAX) return 'c-low';
+    return 'c-good';
+  }
+
+  // ════════════════ BUILD HTML ════════════════
+
+  let html = `
+    <div class="velocity-heading">
+      📊 Publishing Velocity Dashboard
+      <span>${weekLabel(thisWkDates)}</span>
+      <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">
+        ${APP.channels.length} active channels · ${theoreticalMax} titles/wk theoretical max (${MAX}/ch)
+      </span>
+    </div>`;
+
+  // ── KPI Row ──
+  html += `<div class="kpi-row">`;
+
+  // Last week
+  html += `
+    <div class="kpi-card">
+      <div class="kpi-label">Last Week</div>
+      <div class="kpi-value" style="color:var(--gray)">${totalLast}</div>
+      <div class="kpi-sub">${weekLabel(lastWkDates)}</div>
+    </div>`;
+
+  // This week (hero card)
+  html += `
+    <div class="kpi-card kpi-accent">
+      <div class="kpi-label">This Week</div>
+      <div class="kpi-value" style="color:var(--gold)">${totalCurr}</div>
+      <div class="kpi-sub"><strong>${utilPct}%</strong> of ${theoreticalMax} max capacity</div>
+      <span class="kpi-delta ${wowClass}">${wowSign}${wowDelta} vs last wk</span>
+    </div>`;
+
+  // Next week
+  html += `
+    <div class="kpi-card">
+      <div class="kpi-label">Next Week</div>
+      <div class="kpi-value" style="color:${totalNext > 0 ? 'var(--green)' : 'var(--p1)'}">${totalNext}</div>
+      <div class="kpi-sub">${weekLabel(nextWkDates)} scheduled</div>
+    </div>`;
+
+  // New titles this month
+  html += `
+    <div class="kpi-card">
+      <div class="kpi-label">New Titles This Month</div>
+      <div class="kpi-value" style="color:var(--white)">${newThisMonth}</div>
+      <div class="kpi-sub">${months[today.getMonth()]} ${today.getFullYear()} · added to tracker</div>
+    </div>`;
+
+  // Processing time
+  if (avgDays !== null) {
+    const cleanColor = cleanMedian !== null ? (cleanMedian <= 14 ? 'var(--green)' : cleanMedian <= 45 ? 'var(--gold)' : 'var(--p1)') : 'var(--dim)';
+    const cicColor   = cicMedian !== null   ? (cicMedian <= 14 ? 'var(--green)' : cicMedian <= 45 ? 'var(--gold)' : 'var(--p1)') : 'var(--dim)';
+
+    html += `
+      <div class="kpi-card">
+        <div class="kpi-label">Processing Time · Upload to Publish</div>
+        <div style="display:flex;gap:14px;justify-content:center;align-items:baseline;margin-top:4px">
+          <div style="text-align:center">
+            <div class="kpi-value" style="font-size:28px;color:${cleanColor}">${cleanMedian !== null ? cleanMedian : '—'}<span style="font-size:12px;color:var(--dim)"> d</span></div>
+            <div style="font-size:9px;color:var(--green);font-weight:700;margin-top:2px">✓ CLEAN</div>
+            <div style="font-size:9px;color:var(--dim)">${cleanProcessing.length} titles</div>
+          </div>
+          <div style="width:1px;height:36px;background:var(--border)"></div>
+          <div style="text-align:center">
+            <div class="kpi-value" style="font-size:28px;color:${cicColor}">${cicMedian !== null ? cicMedian : '—'}<span style="font-size:12px;color:var(--dim)"> d</span></div>
+            <div style="font-size:9px;color:var(--p2);font-weight:700;margin-top:2px">⚠ CIC</div>
+            <div style="font-size:9px;color:var(--dim)">${cicProcessing.length} titles</div>
+          </div>
+          <div style="width:1px;height:36px;background:var(--border)"></div>
+          <div style="text-align:center">
+            <div class="kpi-value" style="font-size:28px;color:var(--white)">${medianDays}<span style="font-size:12px;color:var(--dim)"> d</span></div>
+            <div style="font-size:9px;color:var(--dim);font-weight:700;margin-top:2px">ALL</div>
+            <div style="font-size:9px;color:var(--dim)">${processingDays.length} titles</div>
+          </div>
+        </div>
+        <div style="font-size:9px;color:var(--dim);text-align:center;margin-top:8px">Median days</div>
+        <div class="gauge-row" title="0-7d: ${b07} | 8-14d: ${b814} | 15-30d: ${b1530} | 31-60d: ${b3160} | 60+d: ${b60p}" style="margin-top:6px">
+          <div class="gauge-seg" style="width:${(b07/pTotal*100).toFixed(1)}%;background:#22c55e" title="0-7 days: ${b07}"></div>
+          <div class="gauge-seg" style="width:${(b814/pTotal*100).toFixed(1)}%;background:#86efac" title="8-14 days: ${b814}"></div>
+          <div class="gauge-seg" style="width:${(b1530/pTotal*100).toFixed(1)}%;background:var(--gold)" title="15-30 days: ${b1530}"></div>
+          <div class="gauge-seg" style="width:${(b3160/pTotal*100).toFixed(1)}%;background:var(--p2)" title="31-60 days: ${b3160}"></div>
+          <div class="gauge-seg" style="width:${(b60p/pTotal*100).toFixed(1)}%;background:var(--p1)" title="60+ days: ${b60p}"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:4px">
+          <span>0-7d</span><span>8-14d</span><span>15-30d</span><span>31-60d</span><span>60+d</span>
+        </div>
+      </div>`;
+  }
+
+  // Movies vs Episodes card
+  if (hasContentTypeData) {
+    const totalMovies   = releasedMovies + backlogMovies;
+    const totalEpisodes = releasedEpisodes + backlogEpisodes;
+    html += `
+      <div class="kpi-card">
+        <div class="kpi-label">Content Mix</div>
+        <div style="display:flex;gap:16px;justify-content:center;align-items:baseline">
+          <div style="text-align:center">
+            <div class="kpi-value" style="font-size:28px;color:#818cf8">${totalMovies}</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:2px">Movies</div>
+          </div>
+          <div style="font-size:18px;color:var(--border)">|</div>
+          <div style="text-align:center">
+            <div class="kpi-value" style="font-size:28px;color:#38bdf8">${totalEpisodes}</div>
+            <div style="font-size:10px;color:var(--dim);margin-top:2px">Episodes</div>
+          </div>
+        </div>
+        <div class="kpi-sub" style="margin-top:8px">
+          ${uniqueShows.size} show${uniqueShows.size !== 1 ? 's' : ''} detected
+          · <span style="color:#38bdf8">${releasedShows.size}</span> airing
+          · <span style="color:var(--dim)">${backlogShows.size}</span> in backlog
+        </div>
+        <div class="kpi-sub">
+          <span style="color:#818cf8">${releasedMovies}</span> / <span style="color:#38bdf8">${releasedEpisodes}</span> released
+          · <span style="color:#818cf8">${backlogMovies}</span> / <span style="color:#38bdf8">${backlogEpisodes}</span> in backlog
+        </div>
+      </div>`;
+  }
+
+  // CIC overview card
+  if (cicTotal > 0) {
+    html += `
+      <div class="kpi-card">
+        <div class="kpi-label">Copyright Claims</div>
+        <div class="kpi-value" style="font-size:28px;color:var(--p2)">${cicTotal}</div>
+        <div class="kpi-sub">${cicDrafts} blocking drafts</div>
+        <div style="display:flex;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap">
+          ${cicResolved ? `<span class="dispute-badge resolved" style="font-size:9px">${cicResolved} Resolved</span>` : ''}
+          ${cicReview   ? `<span class="dispute-badge review" style="font-size:9px">${cicReview} In Review</span>` : ''}
+          ${cicRejected ? `<span class="dispute-badge rejected" style="font-size:9px">${cicRejected} Rejected</span>` : ''}
+        </div>
+      </div>`;
+  }
+
+  html += `</div>`;
+
+  // ── Silent channels alert ──
+  if (silentChannels.length > 0) {
+    html += `<div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--p1)">⚠ Gap Alert</span>
+      <span style="font-size:12px;color:#ccc">${silentChannels.length} channel${silentChannels.length > 1 ? 's' : ''} with <strong style="color:var(--p1)">0 titles</strong> this week:</span>
+      ${silentChannels.map(ch => {
+        const color = getChannelColor(ch);
+        return `<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(239,68,68,0.25);display:inline-flex;align-items:center;gap:5px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:${color};display:inline-block"></span>${shortChannel(ch)}
+        </span>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // ── Per-channel grid (expanded: Last / This / Next week) ──
+  html += `
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);margin-bottom:10px;">
+      Per-Channel Breakdown
+    </div>
+    <div class="summary-grid">`;
+
+  // Pre-compute per-channel content type counts across the 3-week window
+  const allWeekKeys = [...lastWkKeys, ...thisWkKeys, ...nextWkKeys];
+  const chContentCounts = {};
+  APP.items.filter(i => (i.status === 'scheduled' || i.status === 'published') && i.publishDate)
+    .forEach(item => {
+      const dk = dateKey(item.publishDate);
+      if (allWeekKeys.includes(dk)) {
+        if (!chContentCounts[item.channel]) chContentCounts[item.channel] = { movies: 0, episodes: 0 };
+        if (item.contentType === 'movie') chContentCounts[item.channel].movies++;
+        else if (item.contentType === 'episode') chContentCounts[item.channel].episodes++;
+      }
+    });
+
+  APP.channels.forEach(ch => {
+    const color = getChannelColor(ch);
+    const lc = counts[ch]?.last || 0;
+    const cc = counts[ch]?.curr || 0;
+    const nc = counts[ch]?.next || 0;
+    const total3wk = lc + cc + nc;
+    const utilBar = Math.min(100, Math.round((cc / MAX) * 100));
+    const utilColor = cc === 0 ? '#ef4444' : cc < MAX ? '#e8a820' : '#22c55e';
+    const chMovies = chContentCounts[ch]?.movies || 0;
+    const chEpisodes = chContentCounts[ch]?.episodes || 0;
+    const hasTypeCounts = chMovies > 0 || chEpisodes > 0;
+
+    html += `
+      <div class="summary-card" style="border-left: 3px solid ${color}">
+        <div class="summary-card-header">
+          <span class="ch-dot" style="background:${color}"></span>
+          <span class="ch-name">${shortChannel(ch)}</span>
+          ${hasTypeCounts ? `<span style="font-size:9px;color:var(--dim);margin-left:auto;display:flex;gap:6px">
+            ${chMovies ? `<span style="color:#818cf8;font-weight:700">${chMovies} movie${chMovies>1?'s':''}</span>` : ''}
+            ${chEpisodes ? `<span style="color:#38bdf8;font-weight:700">${chEpisodes} ep${chEpisodes>1?'s':''}</span>` : ''}
+          </span>` : ''}
+        </div>
+        <div class="summary-weeks">
+          <div class="summary-week">
+            <div class="wk-label">Last</div>
+            <div class="wk-count" style="color:var(--gray)">${lc}</div>
+          </div>
+          <div class="summary-week" style="background:rgba(232,168,32,0.08)">
+            <div class="wk-label" style="color:var(--gold)">This</div>
+            <div class="wk-count ${countClass(cc)}">${cc}</div>
+          </div>
+          <div class="summary-week">
+            <div class="wk-label">Next</div>
+            <div class="wk-count ${countClass(nc)}">${nc}</div>
+          </div>
+          <div class="summary-week total-wk">
+            <div class="wk-label">3-Wk</div>
+            <div class="wk-count c-total">${total3wk}</div>
+          </div>
+        </div>
+        <div class="util-bar-wrap">
+          <div class="util-bar" style="width:${utilBar}%;background:${utilColor}"></div>
+          <div class="util-marker" style="left:${Math.round(100/MAX*1)}%" title="1/wk target"></div>
+          <div class="util-marker" style="left:${Math.round(100/MAX*MAX)}%;opacity:0.8;background:var(--gold)" title="${MAX}/wk max"></div>
+        </div>
+      </div>`;
+  });
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER PRIORITY BANNER
+// ═══════════════════════════════════════════════
+function renderBanner() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const week2End = getWeekDates(1)[6];
+
+  // Unscheduled priority drafts
+  const unscheduled = APP.items.filter(i => (i.status === 'draft' || i.status === 'draft_blocked'));
+  const p1 = unscheduled.filter(i => i.priority === 'P1');
+  const p2 = unscheduled.filter(i => i.priority === 'P2');
+  const p3 = unscheduled.filter(i => i.priority === 'P3');
+
+  // Scheduled items for week 1 + week 2 by priority
+  const w1dates = getWeekDates(0).map(dateKey);
+  const w2dates = getWeekDates(1).map(dateKey);
+  const scheduled2Wks = APP.items.filter(i => {
+    if (i.status !== 'scheduled' || !i.publishDate) return false;
+    const dk = dateKey(i.publishDate);
+    return w1dates.includes(dk) || w2dates.includes(dk);
+  });
+  const schP1 = scheduled2Wks.filter(i => i.priority === 'P1');
+  const schP2 = scheduled2Wks.filter(i => i.priority === 'P2');
+
+  const banner = document.getElementById('priority-banner');
+  if (!APP.hasPriority) {
+    banner.innerHTML = `<span class="banner-label">Priority Tracking</span>
+      <span style="color:var(--gold);font-size:12px;">Add a <strong>Priority</strong> column to your CSV (values: P1, P2, P3, Standard) to enable priority alerts.</span>`;
+    return;
+  }
+
+  let html = `<span class="banner-label">Priority Status</span>`;
+
+  html += `<div class="p-alert" style="border-color:${p1.length ? 'rgba(239,68,68,0.4)' : 'var(--border)'}">
+    <span class="p-badge p1">P1</span>
+    <div><span class="count" style="color:${p1.length ? 'var(--p1)' : 'var(--gray)'}">${p1.length}</span></div>
+    <div class="p-label"><strong>Unscheduled</strong>need scheduling</div>
+  </div>`;
+
+  html += `<div class="p-alert" style="border-color:${p2.length ? 'rgba(249,115,22,0.3)' : 'var(--border)'}">
+    <span class="p-badge p2">P2</span>
+    <div><span class="count" style="color:${p2.length ? 'var(--p2)' : 'var(--gray)'}">${p2.length}</span></div>
+    <div class="p-label"><strong>Unscheduled</strong>high priority</div>
+  </div>`;
+
+  html += `<div class="p-alert">
+    <span class="p-badge p3">P3</span>
+    <div><span class="count" style="color:${p3.length ? 'var(--p3)' : 'var(--gray)'}">${p3.length}</span></div>
+    <div class="p-label"><strong>Unscheduled</strong>upcoming</div>
+  </div>`;
+
+  html += `<div style="flex:1"></div>`;
+
+  html += `<div class="p-alert" style="border-color:rgba(34,197,94,0.3)">
+    <span style="font-size:18px">✅</span>
+    <div><span class="count" style="color:var(--green)">${schP1.length + schP2.length}</span></div>
+    <div class="p-label"><strong>P1/P2 titles</strong>scheduled next 2 wks</div>
+  </div>`;
+
+  banner.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER PRIORITY WATCHLIST
+// ═══════════════════════════════════════════════
+function renderWatchlist() {
+  const content = document.getElementById('watchlist-content');
+
+  if (!APP.hasPriority) {
+    content.innerHTML = `<div class="no-priorities">
+      <div class="icon">🎯</div>
+      Add a <strong style="color:var(--gold)">Priority Level</strong> column to your CSV to see the watchlist.
+      <br><span style="font-size:12px;color:var(--dim)">Values: P1 · P2 · P3 · Standard (or leave blank)</span>
+    </div>`;
+    return;
+  }
+
+  // Column exists but no values filled in yet
+  const anyPriority = APP.items.some(i => i.priority !== 'Standard');
+  if (!anyPriority) {
+    content.innerHTML = `<div class="no-priorities">
+      <div class="icon">✅</div>
+      <strong style="color:var(--gold)">Priority Level column detected!</strong>
+      <br><span style="font-size:13px;color:var(--gray)">No P1/P2/P3 values assigned yet. Fill in the <strong>Priority Level</strong> column in your CSV with P1, P2, or P3 for titles that need scheduling priority — they'll appear here instantly.</span>
+    </div>`;
+    return;
+  }
+
+  const priorityItems = APP.items
+    .filter(i => (i.status === 'draft' || i.status === 'draft_blocked') && i.priority !== 'Standard')
+    .sort((a, b) => (P_ORDER[a.priority] - P_ORDER[b.priority]) || a.channel.localeCompare(b.channel));
+
+  if (!priorityItems.length) {
+    content.innerHTML = `<div class="no-priorities">
+      <div class="icon">🎉</div>
+      No unscheduled priority titles — all P1/P2/P3 drafts are scheduled or cleared!
+    </div>`;
+    return;
+  }
+
+  // Group by channel
+  const byChannel = {};
+  priorityItems.forEach(i => {
+    if (!byChannel[i.channel]) byChannel[i.channel] = [];
+    byChannel[i.channel].push(i);
+  });
+
+  // Sort channels by worst priority first
+  const sortedChannels = Object.keys(byChannel).sort((a, b) => {
+    const aWorst = Math.min(...byChannel[a].map(i => P_ORDER[i.priority]));
+    const bWorst = Math.min(...byChannel[b].map(i => P_ORDER[i.priority]));
+    return aWorst - bWorst;
+  });
+
+  let html = `<div class="watchlist-grid">`;
+  sortedChannels.forEach(ch => {
+    const chItems = byChannel[ch].sort((a, b) => P_ORDER[a.priority] - P_ORDER[b.priority]);
+    const color = getChannelColor(ch);
+    const p1c = chItems.filter(i => i.priority === 'P1').length;
+    const p2c = chItems.filter(i => i.priority === 'P2').length;
+    const p3c = chItems.filter(i => i.priority === 'P3').length;
+
+    html += `<div class="wl-card">
+      <div class="wl-card-head">
+        <span class="ch-dot" style="background:${color}"></span>
+        <span class="ch-name">${shortChannel(ch)}</span>
+        ${p1c ? `<span class="p-badge p1">P1: ${p1c}</span>` : ''}
+        ${p2c ? `<span class="p-badge p2">P2: ${p2c}</span>` : ''}
+        ${p3c ? `<span class="p-badge p3">P3: ${p3c}</span>` : ''}
+      </div>`;
+
+    chItems.forEach(item => {
+      const pCls = P_CLASS[item.priority];
+      html += `<div class="wl-row">
+        <span class="p-badge ${pCls}">${item.priority}</span>
+        <span class="title">${item.title}</span>
+        ${item.hasCIC ? `<span class="cic-tag">CIC</span>` : ''}
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+  html += `</div>`;
+  content.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER CALENDAR (one week)
+// ═══════════════════════════════════════════════
+function renderCalendarWeek(containerId, weekOffset) {
+  const dates = getWeekDates(weekOffset);
+  const tk = todayKey();
+  const weekLabels = ['Week 1 — ', 'Week 2 — '];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const startD = dates[0], endD = dates[6];
+  const weekLabel = `${weekLabels[weekOffset] || ''}${months[startD.getMonth()]} ${startD.getDate()} – ${months[endD.getMonth()]} ${endD.getDate()}, ${endD.getFullYear()}`;
+
+  // Build lookup: dateKey → channel → [items]
+  const lookup = {};
+  APP.items.filter(i => i.status === 'scheduled' && i.publishDate).forEach(item => {
+    const dk = dateKey(item.publishDate);
+    if (!lookup[dk]) lookup[dk] = {};
+    const ch = item.channel;
+    if (!lookup[dk][ch]) lookup[dk][ch] = [];
+    lookup[dk][ch].push(item);
+  });
+
+  // Per-channel count for this week
+  const chCount = {};
+  APP.channels.forEach(ch => { chCount[ch] = 0; });
+  dates.forEach(d => {
+    const dk = dateKey(d);
+    if (lookup[dk]) {
+      Object.entries(lookup[dk]).forEach(([ch, items]) => {
+        chCount[ch] = (chCount[ch] || 0) + items.length;
+      });
+    }
+  });
+
+  let html = `<div class="week-label">${weekLabel}</div>`;
+  html += `<div class="cal-wrap"><table class="cal"><thead><tr>`;
+  html += `<th class="channel-hd">Channel</th>`;
+  dates.forEach(d => {
+    const dk = dateKey(d);
+    const isT = dk === tk;
+    html += `<th class="${isT ? 'today-hd' : ''}">${formatDayHeader(d)}${isT ? '<br><span style="font-size:9px;color:var(--gold);font-weight:800;letter-spacing:1px">TODAY</span>' : ''}</th>`;
+  });
+  html += `</tr></thead><tbody>`;
+
+  APP.channels.forEach(ch => {
+    const color = getChannelColor(ch);
+    const count = chCount[ch] || 0;
+    const countColor = count === 0 ? '#ef4444' : count >= 3 ? '#22c55e' : '#e8a820';
+
+    html += `<tr><td class="ch-cell">
+      <div class="ch-cell-name"><span class="ch-dot" style="background:${color}"></span>${shortChannel(ch)}</div>
+      <div class="ch-count" style="color:${countColor}">${count} title${count !== 1 ? 's' : ''} this week</div>
+    </td>`;
+
+    dates.forEach(d => {
+      const dk = dateKey(d);
+      const isT = dk === tk;
+      const items = (lookup[dk] && lookup[dk][ch]) || [];
+
+      let cellClass = items.length ? (isT ? 'today-col' : '') : (isT ? 'today-col' : 'open-col');
+      html += `<td class="${cellClass}">`;
+      if (items.length) {
+        items.forEach(item => {
+          const label = item.title.length > 21 ? item.title.slice(0, 20) + '…' : item.title;
+          const pHtml = (APP.hasPriority && item.priority !== 'Standard')
+            ? `<span class="pill-priority pp-${item.priority.toLowerCase()}">${item.priority}</span>`
+            : '';
+          html += `<span class="pill" style="background:${color}" data-tip="${item.title}${item.priority !== 'Standard' ? ' · ' + item.priority : ''}">${label}${pHtml}</span>`;
+        });
+      } else {
+        html += `<div class="open-dash">—</div>`;
+      }
+      html += `</td>`;
+    });
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  document.getElementById(containerId).innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  CALENDAR TAB SWITCHING
+// ═══════════════════════════════════════════════
+function switchTab(idx, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const w1 = document.getElementById('cal-week1');
+  const w2 = document.getElementById('cal-week2');
+  if (idx === 0) { w1.style.display = ''; w2.style.display = 'none'; }
+  else if (idx === 1) { w1.style.display = 'none'; w2.style.display = ''; }
+  else { w1.style.display = ''; w2.style.display = ''; }
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER BACKLOG
+// ═══════════════════════════════════════════════
+function disputeStatusBadge(status) {
+  if (!status) return '';
+  const s = status.toLowerCase();
+  if (s.includes('resolved'))     return `<span class="dispute-badge resolved">Resolved</span>`;
+  if (s.includes('under review')) return `<span class="dispute-badge review">In Review</span>`;
+  if (s.includes('rejected'))     return `<span class="dispute-badge rejected">Rejected</span>`;
+  return `<span class="dispute-badge review">${status}</span>`;
+}
+
+function contentTypeBadge(item) {
+  if (item.contentType === 'movie')   return `<span class="format-badge fmt-movie">Movie</span>`;
+  if (item.contentType === 'episode') return `<span class="format-badge fmt-show">Ep</span>`;
+  return '';
+}
+
+function renderBacklog() {
+  const grid = document.getElementById('backlog-grid');
+  let html = '';
+
+  APP.channels.forEach(ch => {
+    const color = getChannelColor(ch);
+    const drafts = APP.items.filter(i => i.channel === ch && (i.status === 'draft' || i.status === 'draft_blocked'));
+    if (!drafts.length) return;
+
+    const clean = drafts.filter(i => !i.hasCIC).sort((a, b) => P_ORDER[a.priority] - P_ORDER[b.priority]);
+    const blocked = drafts.filter(i => i.hasCIC).sort((a, b) => P_ORDER[a.priority] - P_ORDER[b.priority]);
+
+    // Count by priority
+    const p1c = clean.filter(i => i.priority === 'P1').length;
+    const p2c = clean.filter(i => i.priority === 'P2').length;
+    const p3c = clean.filter(i => i.priority === 'P3').length;
+
+    // Count movies / episodes
+    const movieC = drafts.filter(i => i.contentType === 'movie').length;
+    const epC    = drafts.filter(i => i.contentType === 'episode').length;
+    // Unique shows in this channel's backlog
+    const chShows = new Set(drafts.filter(i => i.isEpisode && i.showName).map(i => i.showName));
+
+    html += `<div class="bl-card">
+      <div class="bl-head" style="border-bottom:1px solid var(--border)">
+        <div class="bl-head-left">
+          <span class="ch-dot" style="background:${color}"></span>
+          ${shortChannel(ch)}
+        </div>
+        <div class="bl-counts">
+          ${p1c ? `<span class="bl-count-badge" style="background:rgba(239,68,68,0.15);color:var(--p1)">P1:${p1c}</span>` : ''}
+          ${p2c ? `<span class="bl-count-badge" style="background:rgba(249,115,22,0.15);color:var(--p2)">P2:${p2c}</span>` : ''}
+          ${p3c ? `<span class="bl-count-badge" style="background:rgba(234,179,8,0.15);color:var(--p3)">P3:${p3c}</span>` : ''}
+          <span class="bl-count-badge" style="background:rgba(255,255,255,0.05);color:var(--gray)">${clean.length} ready</span>
+          ${blocked.length ? `<span class="bl-count-badge" style="background:rgba(249,115,22,0.1);color:var(--p2)">${blocked.length} CIC</span>` : ''}
+          ${movieC ? `<span class="bl-count-badge" style="background:rgba(99,102,241,0.12);color:#818cf8">${movieC} movie${movieC>1?'s':''}</span>` : ''}
+          ${epC ? `<span class="bl-count-badge" style="background:rgba(14,165,233,0.12);color:#38bdf8">${epC} ep${epC>1?'s':''} · ${chShows.size} show${chShows.size>1?'s':''}</span>` : ''}
+        </div>
+      </div>
+      <div class="bl-body">`;
+
+    if (!clean.length && !blocked.length) {
+      html += `<div class="no-bl">No drafts in backlog</div>`;
+    } else {
+      // Group episodes by show, render standalone titles normally
+      function renderItems(items, isBlocked) {
+        // Separate episodes and standalone
+        const episodeGroups = {};
+        const standalone = [];
+        items.forEach(item => {
+          if (item.isEpisode && item.showName) {
+            if (!episodeGroups[item.showName]) episodeGroups[item.showName] = [];
+            episodeGroups[item.showName].push(item);
+          } else {
+            standalone.push(item);
+          }
+        });
+
+        // Render standalone items first
+        standalone.forEach(item => {
+          const pCls = P_CLASS[item.priority];
+          const pHtml = (APP.hasPriority && item.priority !== 'Standard')
+            ? `<span class="p-badge ${pCls}" style="font-size:9px${isBlocked ? ';opacity:0.6' : ''}">${item.priority}</span>`
+            : '';
+          html += `<div class="bl-row${isBlocked ? ' blocked' : ''}">
+            ${pHtml}
+            ${contentTypeBadge(item)}
+            <span class="bl-title">${item.title}</span>
+            ${isBlocked ? '<span class="cic-badge">CIC</span>' : ''}
+            ${isBlocked ? disputeStatusBadge(item.disputeStatus) : ''}
+          </div>`;
+        });
+
+        // Render episode groups — collapsed under show name
+        Object.entries(episodeGroups).forEach(([showName, eps]) => {
+          eps.sort((a, b) => {
+            if (a.season !== b.season) return (a.season || 0) - (b.season || 0);
+            return (a.epStart || 0) - (b.epStart || 0);
+          });
+          const epCount = eps.length;
+          // Show the worst priority in the group
+          const worstP = eps.reduce((w, e) => P_ORDER[e.priority] < P_ORDER[w] ? e.priority : w, 'Standard');
+          const pCls = P_CLASS[worstP];
+          const pHtml = (APP.hasPriority && worstP !== 'Standard')
+            ? `<span class="p-badge ${pCls}" style="font-size:9px${isBlocked ? ';opacity:0.6' : ''}">${worstP}</span>`
+            : '';
+
+          // Build compact episode list like "S1E1–E7"
+          const epLabels = eps.map(e => {
+            if (e.season && e.epStart) {
+              const end = e.epEnd && e.epEnd !== e.epStart ? `–E${e.epEnd}` : '';
+              return `S${e.season}E${e.epStart}${end}`;
+            }
+            if (e.epStart) return `Ep ${e.epStart}`;
+            return '';
+          }).filter(Boolean);
+
+          // Try to compress: "S1E1, S1E2, S1E3" → "S1E1–E3"
+          let epRange = '';
+          if (epLabels.length <= 3) {
+            epRange = epLabels.join(', ');
+          } else {
+            epRange = epLabels[0] + ' … ' + epLabels[epLabels.length - 1];
+          }
+
+          html += `<div class="bl-row show-group${isBlocked ? ' blocked' : ''}" style="background:rgba(14,165,233,0.03);border-left:2px solid rgba(14,165,233,0.3);margin:2px 0;border-radius:4px;padding-left:12px;">
+            ${pHtml}
+            <span class="format-badge fmt-show">Show</span>
+            <span class="bl-title" style="font-weight:700">${showName}</span>
+            <span style="font-size:10px;color:#38bdf8;flex-shrink:0;font-weight:600">${epCount} ep${epCount>1?'s':''}</span>
+            ${isBlocked ? '<span class="cic-badge">CIC</span>' : ''}
+          </div>`;
+          // Show individual episodes indented
+          eps.forEach(ep => {
+            const epLabel = ep.season && ep.epStart
+              ? `S${ep.season}E${ep.epStart}${ep.epEnd && ep.epEnd !== ep.epStart ? '–E'+ep.epEnd : ''}`
+              : ep.epStart ? `Ep ${ep.epStart}` : '';
+            html += `<div class="bl-row${isBlocked ? ' blocked' : ''}" style="padding-left:28px;font-size:11px;">
+              <span style="font-size:9px;color:#38bdf8;font-weight:700;min-width:42px">${epLabel}</span>
+              <span class="bl-title" style="color:var(--gray)">${ep.title}</span>
+              ${isBlocked ? disputeStatusBadge(ep.disputeStatus) : ''}
+            </div>`;
+          });
+        });
+      }
+
+      renderItems(clean, false);
+      renderItems(blocked, true);
+    }
+
+    html += `</div></div>`;
+  });
+
+  grid.innerHTML = html || `<div style="color:var(--dim);font-size:14px;padding:20px">No draft titles found in this CSV.</div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  FULL RENDER
+// ═══════════════════════════════════════════════
+function renderApp() {
+  const today = new Date();
+  document.getElementById('hb-date').textContent =
+    `${today.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'})}`;
+
+  // Legend
+  renderLegend();
+  // Banner
+  renderBanner();
+  // Weekly summary
+  renderWeeklySummary();
+  // Watchlist
+  renderWatchlist();
+  // Calendars
+  renderCalendarWeek('cal-week1', 0);
+  renderCalendarWeek('cal-week2', 1);
+  document.getElementById('cal-week2').style.display = 'none';
+  // Backlog
+  renderBacklog();
+
+  // Priority hint
+  const hintEl = document.getElementById('no-priority-hint');
+  if (!APP.hasPriority) {
+    hintEl.innerHTML = `<span style="font-size:12px;color:var(--gold)">⚠ No <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px">Priority Level</code> column found — add it to your CSV to enable watchlist &amp; alerts</span>`;
+  } else {
+    const filledCount = APP.items.filter(i => i.priority !== 'Standard').length;
+    if (filledCount === 0) {
+      hintEl.innerHTML = `<span style="font-size:12px;color:var(--gold)">✓ Priority Level column detected — fill in P1/P2/P3 values in your CSV to start seeing alerts</span>`;
+    } else {
+      hintEl.innerHTML = `<span style="font-size:12px;color:var(--green)">✓ Priority Level active — ${filledCount} title${filledCount !== 1 ? 's' : ''} with priority assigned</span>`;
+    }
+  }
+
+  // Show app
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════
+//  API INTEGRATION
+// ═══════════════════════════════════════════════
+async function loadFromAPI() {
+  const loadingEl = document.getElementById('cloud-loading');
+  try {
+    loadingEl.style.display = 'block';
+    const resp = await fetch('/api/schedule');
+    const json = await resp.json();
+    if (json.ok && json.data) {
+      const d = json.data;
+      APP.items = d.items.map(i => ({
+        ...i,
+        publishDate: i.publishDate ? new Date(i.publishDate) : null,
+        createdDate: i.createdDate ? new Date(i.createdDate) : null,
+        uploadDate:  i.uploadDate  ? new Date(i.uploadDate)  : null
+      }));
+      APP.channels = d.channels;
+      APP.hasPriority = d.hasPriority;
+      renderApp();
+      setCloudStatus('loaded', d.uploadedAt);
+      return true;
+    }
+  } catch (err) {
+    console.log('No cloud schedule found, showing upload screen.');
+  } finally {
+    loadingEl.style.display = 'none';
+  }
+  return false;
+}
+
+async function saveToAPI() {
+  const keyInput = document.getElementById('upload-key-input');
+  const uploadKey = keyInput ? keyInput.value.trim() : '';
+  if (!uploadKey) {
+    setCloudStatus('local');
+    return; // local-only preview
+  }
+
+  setCloudStatus('saving');
+  try {
+    const payload = {
+      items: APP.items.map(i => ({
+        ...i,
+        publishDate: i.publishDate ? i.publishDate.toISOString() : null,
+        createdDate: i.createdDate ? i.createdDate.toISOString() : null,
+        uploadDate:  i.uploadDate  ? i.uploadDate.toISOString()  : null
+      })),
+      channels: APP.channels,
+      hasPriority: APP.hasPriority
+    };
+
+    const resp = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Upload-Key': uploadKey
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const json = await resp.json();
+    if (json.ok) {
+      setCloudStatus('saved');
+    } else {
+      setCloudStatus('error', json.error);
+    }
+  } catch (err) {
+    setCloudStatus('error', err.message);
+  }
+}
+
+function setCloudStatus(state, detail) {
+  const el = document.getElementById('cloud-status');
+  if (!el) return;
+  const ts = detail ? new Date(detail).toLocaleString() : '';
+  switch (state) {
+    case 'loaded':
+      el.innerHTML = `<span style="color:var(--green)">☁ Live</span> <span style="color:var(--dim)">· updated ${ts}</span>`;
+      break;
+    case 'saving':
+      el.innerHTML = `<span style="color:var(--gold)">☁ Saving...</span>`;
+      break;
+    case 'saved':
+      el.innerHTML = `<span style="color:var(--green)">☁ Saved to cloud</span>`;
+      break;
+    case 'local':
+      el.innerHTML = `<span style="color:var(--dim)">Local preview (no upload key)</span>`;
+      break;
+    case 'error':
+      el.innerHTML = `<span style="color:var(--p1)">☁ Error: ${detail || 'save failed'}</span>`;
+      break;
+    default:
+      el.innerHTML = '';
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  FILE UPLOAD
+// ═══════════════════════════════════════════════
+function handleCSVText(text) {
+  const rows = parseCSV(text);
+  processCSV(rows);
+  renderApp();
+  saveToAPI(); // fire-and-forget push to cloud
+}
+
+document.getElementById('csv-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => handleCSVText(ev.target.result);
+  reader.readAsText(file);
+});
+
+// Drag & drop
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragging'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+dz.addEventListener('drop', (e) => {
+  e.preventDefault(); dz.classList.remove('dragging');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => handleCSVText(ev.target.result);
+  reader.readAsText(file);
+});
+
+function reupload() {
+  document.getElementById('upload-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+  channelColorMap = {}; colorIdx = 0;
+}
+
+// ═══════════════════════════════════════════════
+//  PRINT / PDF
+// ═══════════════════════════════════════════════
+function printReport() {
+  // Stamp the print date on the footer so it shows in the printout
+  const footer = document.querySelector('.app-footer');
+  if (footer) footer.setAttribute('data-print-date', new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'}));
+  // Expand both calendar weeks for the printout
+  const w1 = document.getElementById('cal-week1');
+  const w2 = document.getElementById('cal-week2');
+  const prev1 = w1.style.display, prev2 = w2.style.display;
+  w1.style.display = ''; w2.style.display = '';
+  window.print();
+  // Restore tab state after print dialog closes
+  w1.style.display = prev1; w2.style.display = prev2;
+}
+
+// ═══════════════════════════════════════════════
+//  EXPORT SNAPSHOT
+// ═══════════════════════════════════════════════
+function exportSnapshot() {
+  // Serialize data — closing script tags in JSON are escaped so they cannot terminate this block
+  const rawData = JSON.stringify({
+    items: APP.items.map(i => ({
+      ...i,
+      publishDate: i.publishDate ? i.publishDate.toISOString() : null,
+      createdDate: i.createdDate ? i.createdDate.toISOString() : null,
+      uploadDate:  i.uploadDate  ? i.uploadDate.toISOString()  : null
+    })),
+    channels: APP.channels,
+    hasPriority: APP.hasPriority
+  }).replace(/<\/script>/gi, '<\\/script>');
+
+  // ── Clear all dynamically-rendered containers before capturing outerHTML ──
+  // This prevents rendered DOM content from appearing as visible text in the export.
+  const dynamicIds = [
+    'priority-banner','weekly-summary','legend-strip','no-priority-hint',
+    'watchlist-content','cal-week1','cal-week2','backlog-grid','hb-date'
+  ];
+  const saved = {};
+  dynamicIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { saved[id] = el.innerHTML; el.innerHTML = ''; }
+  });
+
+  // Temporarily reset display so export starts on upload screen
+  const uploadEl = document.getElementById('upload-screen');
+  const appEl    = document.getElementById('app-screen');
+  const prevUpload = uploadEl.style.display;
+  const prevApp    = appEl.style.display;
+  uploadEl.style.display = '';
+  appEl.style.display    = 'none';
+
+  // Capture clean HTML
+  const pageHTML = document.documentElement.outerHTML;
+
+  // Restore everything immediately
+  dynamicIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && saved[id] !== undefined) el.innerHTML = saved[id];
+  });
+  uploadEl.style.display = prevUpload;
+  appEl.style.display    = prevApp;
+
+  // Build the auto-load snapshot script
+  const snapshotScript = `\n<script>
+(function(){
+  var raw = ${rawData};
+  APP.items    = raw.items.map(function(i){ return Object.assign({},i,{publishDate:i.publishDate?new Date(i.publishDate):null,createdDate:i.createdDate?new Date(i.createdDate):null,uploadDate:i.uploadDate?new Date(i.uploadDate):null}); });
+  APP.channels = raw.channels;
+  APP.hasPriority = raw.hasPriority;
+  function init(){
+    document.getElementById('upload-screen').style.display='none';
+    document.getElementById('app-screen').style.display='block';
+    renderApp();
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',init); }
+  else { init(); }
+})();
+<\/script>`;
+
+  // Use lastIndexOf + slice so we always replace the real closing tag,
+  // never a </body> string literal that appears earlier in the JS source.
+  const closeTag = '<' + '/body>';
+  const bodyPos  = pageHTML.lastIndexOf(closeTag);
+  const finalHTML = bodyPos === -1
+    ? pageHTML + snapshotScript
+    : pageHTML.slice(0, bodyPos) + snapshotScript + '\n' + closeTag + pageHTML.slice(bodyPos + closeTag.length);
+  const blob = new Blob([finalHTML], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `stash-schedule-${new Date().toISOString().slice(0,10)}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════
+//  DEMO DATA  (pre-loaded sample)
+// ═══════════════════════════════════════════════
+function loadDemo() {
+  const today = new Date();
+  function daysFromNow(n) {
+    const d = new Date(today); d.setDate(d.getDate() + n); return d;
+  }
+
+  APP.hasPriority = true;
+  APP.channels = [
+    'Stash Movies','Stash en Français','Stash auf Deutsch',
+    'Stash - LGBTQ Cinema on YouTube','Stash - Found Footage Horror',
+    'Stash - Suspense and Thriller on YouTube','Stash - War & Military',
+    'Stash - Action','Stash - Sci-Fi Cinema','Stash en Espanol',
+    'Stash - Thrills and Chills','Stash - Black Stories'
+  ];
+
+  // Helper: create demo item with all required fields
+  function di(channel, title, status, publishDate, priority, hasCIC, createdDaysAgo, daysBetween) {
+    return {
+      channel, title, status, publishDate, priority, hasCIC,
+      createdDate: daysFromNow(-(createdDaysAgo || 20)),
+      uploadDate: publishDate ? daysFromNow(-((daysBetween || 30))) : null,
+      daysBetween: daysBetween || (publishDate ? 30 + Math.floor(Math.random()*40) : null),
+      visibility: status === 'scheduled' ? 'public' : 'draft',
+      restrictions: hasCIC ? 'CIC' : '',
+      takedown: ''
+    };
+  }
+
+  APP.items = [
+    // SCHEDULED — Week 1 (also add some "published" items for last week)
+    di('Stash - Action', 'Takedown S2E1', 'published', daysFromNow(-5), 'Standard', false, 25, 35),
+    di('Stash - Action', 'Takedown S2E2', 'published', daysFromNow(-4), 'Standard', false, 25, 36),
+    di('Stash Movies', 'Full Body Reset Yoga', 'published', daysFromNow(-3), 'Standard', false, 18, 22),
+    di('Stash - Sci-Fi Cinema', 'Zero Point', 'published', daysFromNow(-3), 'P2', false, 30, 45),
+    di('Stash en Français', 'Les Ombres', 'published', daysFromNow(-2), 'Standard', false, 15, 28),
+    di('Stash - Black Stories', 'Liberation Day Ep 5', 'published', daysFromNow(-2), 'P1', false, 20, 32),
+    di('Stash - LGBTQ Cinema on YouTube', 'Our Song', 'published', daysFromNow(-1), 'Standard', false, 22, 40),
+    di('Stash - Found Footage Horror', 'The Tape', 'published', daysFromNow(-1), 'Standard', false, 12, 18),
+    di('Stash auf Deutsch', 'Dunkelheit Ep 3', 'published', daysFromNow(-1), 'Standard', false, 28, 50),
+    di('Stash - War & Military', 'Band of Heroes', 'published', daysFromNow(-6), 'Standard', false, 35, 55),
+    di('Stash en Espanol', 'Camino al Sur', 'published', daysFromNow(-4), 'Standard', false, 16, 25),
+    di('Stash - Thrills and Chills', 'Nightmare Alley', 'published', daysFromNow(-5), 'Standard', false, 20, 38),
+    { channel:'Stash - Action',          title:'Special Cases S1E16–18',      status:'scheduled', publishDate: daysFromNow(0),  priority:'Standard', hasCIC:false, createdDate:daysFromNow(-15), uploadDate:daysFromNow(-10), daysBetween:10 },
+    { channel:'Stash - Action',          title:'Special Cases S1E19–21',      status:'scheduled', publishDate: daysFromNow(1),  priority:'Standard', hasCIC:false },
+    { channel:'Stash - Sci-Fi Cinema',   title:'PostHuman',                   status:'scheduled', publishDate: daysFromNow(2),  priority:'P2',       hasCIC:false },
+    { channel:'Stash - Black Stories',   title:'Collateral Interest Ep 1',    status:'scheduled', publishDate: daysFromNow(3),  priority:'P1',       hasCIC:false },
+    { channel:'Stash en Français',       title:'Izigo',                       status:'scheduled', publishDate: daysFromNow(4),  priority:'Standard', hasCIC:false },
+    { channel:'Stash auf Deutsch',       title:'A Revair',                    status:'scheduled', publishDate: daysFromNow(4),  priority:'P2',       hasCIC:false },
+    { channel:'Stash - LGBTQ Cinema on YouTube', title:'316 Greenbrier Ep 2', status:'scheduled', publishDate: daysFromNow(4),  priority:'Standard', hasCIC:false },
+    { channel:'Stash en Espanol',        title:'Sí fue Gol S2 Ep 1',          status:'scheduled', publishDate: daysFromNow(4),  priority:'P1',       hasCIC:false },
+    { channel:'Stash - Found Footage Horror', title:'Bosq_Sintra_18',         status:'scheduled', publishDate: daysFromNow(4),  priority:'Standard', hasCIC:false },
+    { channel:'Stash - Black Stories',   title:'Collateral Interest Ep 2',    status:'scheduled', publishDate: daysFromNow(4),  priority:'P1',       hasCIC:false },
+    { channel:'Stash Movies',            title:'Power Up Yoga: Arms & Abs',   status:'scheduled', publishDate: daysFromNow(5),  priority:'Standard', hasCIC:false },
+    { channel:'Stash - Suspense and Thriller on YouTube', title:'Facing Your Demons', status:'scheduled', publishDate: daysFromNow(5), priority:'P2', hasCIC:false },
+    { channel:'Stash - War & Military',  title:'The True Cost of War',        status:'scheduled', publishDate: daysFromNow(5),  priority:'Standard', hasCIC:false },
+    { channel:'Stash - Action',          title:'Ballistics',                  status:'scheduled', publishDate: daysFromNow(5),  priority:'P2',       hasCIC:false },
+    { channel:'Stash - Thrills and Chills', title:'Bane',                     status:'scheduled', publishDate: daysFromNow(5),  priority:'Standard', hasCIC:false },
+    { channel:'Stash en Espanol',        title:'Sí fue Gol S2 Ep 2',          status:'scheduled', publishDate: daysFromNow(5),  priority:'P1',       hasCIC:false },
+    { channel:'Stash Movies',            title:'Power Up Yoga: Full Body',    status:'scheduled', publishDate: daysFromNow(6),  priority:'Standard', hasCIC:false },
+    // SCHEDULED — Week 2
+    { channel:'Stash - Black Stories',   title:'Collateral Interest Ep 3',    status:'scheduled', publishDate: daysFromNow(10), priority:'P1',       hasCIC:false },
+    { channel:'Stash auf Deutsch',       title:'Passage',                     status:'scheduled', publishDate: daysFromNow(11), priority:'P2',       hasCIC:false },
+    { channel:'Stash - LGBTQ Cinema on YouTube', title:'A Cause for Alarm',   status:'scheduled', publishDate: daysFromNow(11), priority:'Standard', hasCIC:false },
+    { channel:'Stash Movies',            title:'Em-Powering Yoga Ep 1',       status:'scheduled', publishDate: daysFromNow(11), priority:'Standard', hasCIC:false },
+    { channel:'Stash en Espanol',        title:'Sí fue Gol S2 Ep 3',          status:'scheduled', publishDate: daysFromNow(11), priority:'P1',       hasCIC:false },
+    { channel:'Stash - Black Stories',   title:'Collateral Interest Ep 4',    status:'scheduled', publishDate: daysFromNow(11), priority:'P1',       hasCIC:false },
+    { channel:'Stash - Suspense and Thriller on YouTube', title:'Thin Walls', status:'scheduled', publishDate: daysFromNow(12), priority:'P2',       hasCIC:false },
+    { channel:'Stash - Action',          title:'Huck & the King of Hearts',   status:'scheduled', publishDate: daysFromNow(12), priority:'Standard', hasCIC:false },
+    { channel:'Stash - War & Military',  title:'Living History',              status:'scheduled', publishDate: daysFromNow(12), priority:'Standard', hasCIC:false },
+    { channel:'Stash Movies',            title:'Em-Powering Yoga Ep 2',       status:'scheduled', publishDate: daysFromNow(12), priority:'Standard', hasCIC:false },
+    { channel:'Stash - Found Footage Horror', title:'Legend Has It',          status:'scheduled', publishDate: daysFromNow(12), priority:'Standard', hasCIC:false },
+    { channel:'Stash en Espanol',        title:'Sí fue Gol S2 Ep 4',          status:'scheduled', publishDate: daysFromNow(12), priority:'P1',       hasCIC:false },
+    { channel:'Stash Movies',            title:'Em-Powering Yoga Ep 3',       status:'scheduled', publishDate: daysFromNow(13), priority:'Standard', hasCIC:false },
+    // DRAFTS — Priority Watchlist (unscheduled)
+    { channel:'Stash - Sci-Fi Cinema',   title:'Sightings',                   status:'draft',    publishDate:null, priority:'P1', hasCIC:false },
+    { channel:'Stash - Sci-Fi Cinema',   title:'The Girl in the Woods',       status:'draft',    publishDate:null, priority:'P2', hasCIC:false },
+    { channel:'Stash - Sci-Fi Cinema',   title:'Program',                     status:'draft',    publishDate:null, priority:'P3', hasCIC:false },
+    { channel:'Stash - Sci-Fi Cinema',   title:'Implosion',                   status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+    { channel:'Stash - Sci-Fi Cinema',   title:'L.I.F.E. Anthologies',        status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+    { channel:'Stash - Thrills and Chills', title:'The Audition',             status:'draft',    publishDate:null, priority:'P1', hasCIC:false },
+    { channel:'Stash - Thrills and Chills', title:'Butchers',                 status:'draft',    publishDate:null, priority:'P2', hasCIC:false },
+    { channel:'Stash - Thrills and Chills', title:'Big Brood',                status:'draft',    publishDate:null, priority:'P3', hasCIC:false },
+    { channel:'Stash - Thrills and Chills', title:'Deadly Reunion',           status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+    { channel:'Stash - Thrills and Chills', title:'Blood Rites',              status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+    { channel:'Stash - Thrills and Chills', title:'Dr. Jason II',             status:'draft_blocked', publishDate:null, priority:'P2', hasCIC:true },
+    { channel:'Stash en Français',       title:'A Quatre Mains',              status:'draft',    publishDate:null, priority:'P2', hasCIC:false },
+    { channel:'Stash en Français',       title:'Chapelle',                    status:'draft',    publishDate:null, priority:'P3', hasCIC:false },
+    { channel:'Stash en Français',       title:'Road to Cayenne',             status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+    { channel:'Stash en Français',       title:'Caches Caches',               status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+    { channel:'Stash en Français',       title:'The Venus Chained',           status:'draft_blocked', publishDate:null, priority:'P3', hasCIC:true },
+    { channel:'Stash - Black Stories',   title:'Line\'em Up S1E1–7',          status:'draft',    publishDate:null, priority:'P1', hasCIC:false },
+    { channel:'Stash - Black Stories',   title:'It\'s Just Temp. S1E1–5',     status:'draft',    publishDate:null, priority:'P2', hasCIC:false },
+    { channel:'Stash - Black Stories',   title:'The Transporter S1E1',        status:'draft',    publishDate:null, priority:'P2', hasCIC:false },
+    { channel:'Stash - Black Stories',   title:'Hard Drive S1E1',             status:'draft_blocked', publishDate:null, priority:'P1', hasCIC:true },
+    { channel:'Stash - Suspense and Thriller on YouTube', title:'The Imago',  status:'draft',    publishDate:null, priority:'P2', hasCIC:false },
+    { channel:'Stash - Suspense and Thriller on YouTube', title:'Die, My Dear', status:'draft',  publishDate:null, priority:'P3', hasCIC:false },
+    { channel:'Stash Movies',            title:'Wuss',                        status:'draft',    publishDate:null, priority:'P3', hasCIC:false },
+    { channel:'Stash Movies',            title:'Old Stock',                   status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+    { channel:'Stash en Espanol',        title:'Vicente Mozo',                status:'draft',    publishDate:null, priority:'P2', hasCIC:false },
+    { channel:'Stash - Action',          title:'Yuki Johnson: Vigilante',     status:'draft',    publishDate:null, priority:'P3', hasCIC:false },
+    { channel:'Stash - Found Footage Horror', title:'Rear Projection',        status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+    { channel:'Stash auf Deutsch',       title:'Far Away – Ep 2',             status:'draft_blocked', publishDate:null, priority:'P2', hasCIC:true },
+    { channel:'Stash auf Deutsch',       title:'Far Away – Ep 3',             status:'draft_blocked', publishDate:null, priority:'P2', hasCIC:true },
+    { channel:'Stash - LGBTQ Cinema on YouTube', title:'Funny Story',         status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+    { channel:'Stash - War & Military',  title:'(No clean drafts)',           status:'draft',    publishDate:null, priority:'Standard', hasCIC:false },
+  ];
+
+  // Fill in default values for demo items missing the new fields
+  APP.items = APP.items.map(i => ({
+    ...i,
+    createdDate: i.createdDate || daysFromNow(-(10 + Math.floor(Math.random() * 20))),
+    uploadDate:  i.uploadDate  || (i.publishDate ? daysFromNow(-(20 + Math.floor(Math.random() * 40))) : null),
+    daysBetween: i.daysBetween ?? (i.publishDate ? 20 + Math.floor(Math.random() * 50) : null),
+    visibility:  i.visibility  || (i.status === 'scheduled' || i.status === 'published' ? 'public' : 'draft'),
+    restrictions: i.restrictions || (i.hasCIC ? 'CIC' : ''),
+    takedown: i.takedown || ''
+  }));
+
+  renderApp();
+}
+
+// ═══════════════════════════════════════════════
+//  AUTO-LOAD FROM CLOUD ON PAGE LOAD
+// ═══════════════════════════════════════════════
+(async function() {
+  // Try to load saved schedule from the API.
+  // If found, skip upload screen entirely; otherwise show upload screen as normal.
+  const loaded = await loadFromAPI();
+  if (!loaded) {
+    // No cloud data — upload screen is already visible, nothing else to do
+  }
+})();
+</script>
+</body>
+</html>
