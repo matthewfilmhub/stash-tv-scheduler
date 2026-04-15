@@ -880,8 +880,8 @@ function processCSV(rows) {
     let status = 'other';
     if (isRemoved) status = 'removed';
     else if (isBlocked) status = 'draft_blocked';
+    else if (publishDate && publishDate >= today && !isPlaceholder) status = 'scheduled';
     else if (isDraft) status = hasCIC ? 'draft_blocked' : 'draft';
-    else if (isPublic && publishDate && publishDate >= today && !isPlaceholder) status = 'scheduled';
     else if (isPublic) status = 'published';
     else if (isUnlisted) status = 'unlisted';
 
