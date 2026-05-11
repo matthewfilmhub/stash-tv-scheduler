@@ -20,6 +20,7 @@
   --p3:       #EAB308;
   --std:      #374151;
   --green:    #22C55E;
+  --teal:     #06B6D4;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--dark); color: var(--white); min-height: 100vh; }
@@ -282,6 +283,7 @@ table.cal tbody td.open-col {
 .bl-row:last-child { border-bottom: none; }
 .bl-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--white); }
 .bl-row.blocked .bl-title { color: var(--dim); }
+.bl-row.transcoding-row .bl-title { color: var(--teal); opacity: 0.85; }
 .cic-badge { font-size: 9px; background: rgba(249,115,22,0.15); color: var(--p2); padding: 1px 5px; border-radius: 3px; flex-shrink: 0; font-weight: 700; }
 .no-bl { color: var(--dim); font-size: 12px; font-style: italic; padding: 8px 0; }
 
@@ -295,6 +297,7 @@ table.cal tbody td.open-col {
 .dispute-badge.resolved { background: rgba(34,197,94,0.12); color: #22c55e; }
 .dispute-badge.review   { background: rgba(234,179,8,0.12); color: #eab308; }
 .dispute-badge.rejected { background: rgba(239,68,68,0.12); color: #ef4444; }
+.transcoding-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(6,182,212,0.15); color: var(--teal); }
 
 /* ── FOOTER ── */
 .app-footer {
@@ -874,13 +877,15 @@ function processCSV(rows) {
     const isPublic  = visibility === 'public';
     const isDraft   = visibility === 'draft' || visibility === '';
     const isUnlisted = visibility === 'unlisted';
+    const isTranscoding = visibility === 'transcoding';
 
     const today = new Date(); today.setHours(0,0,0,0);
 
     let status = 'other';
     if (isRemoved) status = 'removed';
     else if (isBlocked) status = 'draft_blocked';
-    else if (publishDate && publishDate >= today && !isPlaceholder) status = 'scheduled';
+    else if (publishDate && publishDate >= today && !isPlaceholder) status = 'scheduled'; // any title with a future publish date is scheduled
+    else if (isTranscoding) status = 'transcoding';
     else if (isDraft) status = hasCIC ? 'draft_blocked' : 'draft';
     else if (isPublic) status = 'published';
     else if (isUnlisted) status = 'unlisted';
@@ -986,7 +991,7 @@ function renderWeeklySummary() {
   // ── Content type breakdown (Movies vs Episodes) ──
   // contentType is derived from Title Format column + S#E# episode detection
   const publishedOrScheduled = APP.items.filter(i => i.status === 'published' || i.status === 'scheduled');
-  const draftItems = APP.items.filter(i => i.status === 'draft' || i.status === 'draft_blocked');
+  const draftItems = APP.items.filter(i => i.status === 'draft' || i.status === 'draft_blocked' || i.status === 'transcoding');
 
   const releasedMovies  = publishedOrScheduled.filter(i => i.contentType === 'movie').length;
   const releasedEpisodes = publishedOrScheduled.filter(i => i.contentType === 'episode').length;
@@ -1003,7 +1008,7 @@ function renderWeeklySummary() {
 
   // ── CIC overview ──
   const cicTotal     = APP.items.filter(i => i.hasCIC).length;
-  const cicDrafts    = APP.items.filter(i => i.hasCIC && (i.status === 'draft' || i.status === 'draft_blocked')).length;
+  const cicDrafts    = APP.items.filter(i => i.hasCIC && (i.status === 'draft' || i.status === 'draft_blocked' || i.status === 'transcoding')).length;
   const cicResolved  = APP.items.filter(i => i.hasCIC && (i.disputeStatus || '').toLowerCase().includes('resolved')).length;
   const cicReview    = APP.items.filter(i => i.hasCIC && (i.disputeStatus || '').toLowerCase().includes('review')).length;
   const cicRejected  = APP.items.filter(i => i.hasCIC && (i.disputeStatus || '').toLowerCase().includes('rejected')).length;
@@ -1286,7 +1291,7 @@ function renderBanner() {
   const week2End = getWeekDates(1)[6];
 
   // Unscheduled priority drafts
-  const unscheduled = APP.items.filter(i => (i.status === 'draft' || i.status === 'draft_blocked'));
+  const unscheduled = APP.items.filter(i => (i.status === 'draft' || i.status === 'draft_blocked' || i.status === 'transcoding'));
   const p1 = unscheduled.filter(i => i.priority === 'P1');
   const p2 = unscheduled.filter(i => i.priority === 'P2');
   const p3 = unscheduled.filter(i => i.priority === 'P3');
@@ -1367,7 +1372,7 @@ function renderWatchlist() {
   }
 
   const priorityItems = APP.items
-    .filter(i => (i.status === 'draft' || i.status === 'draft_blocked') && i.priority !== 'Standard')
+    .filter(i => (i.status === 'draft' || i.status === 'draft_blocked' || i.status === 'transcoding') && i.priority !== 'Standard')
     .sort((a, b) => (P_ORDER[a.priority] - P_ORDER[b.priority]) || a.channel.localeCompare(b.channel));
 
   if (!priorityItems.length) {
@@ -1541,11 +1546,12 @@ function renderBacklog() {
 
   APP.channels.forEach(ch => {
     const color = getChannelColor(ch);
-    const drafts = APP.items.filter(i => i.channel === ch && (i.status === 'draft' || i.status === 'draft_blocked'));
+    const drafts = APP.items.filter(i => i.channel === ch && (i.status === 'draft' || i.status === 'draft_blocked' || i.status === 'transcoding'));
     if (!drafts.length) return;
 
-    const clean = drafts.filter(i => !i.hasCIC).sort((a, b) => P_ORDER[a.priority] - P_ORDER[b.priority]);
-    const blocked = drafts.filter(i => i.hasCIC).sort((a, b) => P_ORDER[a.priority] - P_ORDER[b.priority]);
+    const transcoding = drafts.filter(i => i.status === 'transcoding').sort((a, b) => P_ORDER[a.priority] - P_ORDER[b.priority]);
+    const clean = drafts.filter(i => i.status !== 'transcoding' && !i.hasCIC).sort((a, b) => P_ORDER[a.priority] - P_ORDER[b.priority]);
+    const blocked = drafts.filter(i => i.status !== 'transcoding' && i.hasCIC).sort((a, b) => P_ORDER[a.priority] - P_ORDER[b.priority]);
 
     // Count by priority
     const p1c = clean.filter(i => i.priority === 'P1').length;
@@ -1569,6 +1575,7 @@ function renderBacklog() {
           ${p2c ? `<span class="bl-count-badge" style="background:rgba(249,115,22,0.15);color:var(--p2)">P2:${p2c}</span>` : ''}
           ${p3c ? `<span class="bl-count-badge" style="background:rgba(234,179,8,0.15);color:var(--p3)">P3:${p3c}</span>` : ''}
           <span class="bl-count-badge" style="background:rgba(255,255,255,0.05);color:var(--gray)">${clean.length} ready</span>
+          ${transcoding.length ? `<span class="bl-count-badge" style="background:rgba(6,182,212,0.12);color:var(--teal)">${transcoding.length} transcoding</span>` : ''}
           ${blocked.length ? `<span class="bl-count-badge" style="background:rgba(249,115,22,0.1);color:var(--p2)">${blocked.length} CIC</span>` : ''}
           ${movieC ? `<span class="bl-count-badge" style="background:rgba(99,102,241,0.12);color:#818cf8">${movieC} movie${movieC>1?'s':''}</span>` : ''}
           ${epC ? `<span class="bl-count-badge" style="background:rgba(14,165,233,0.12);color:#38bdf8">${epC} ep${epC>1?'s':''} · ${chShows.size} show${chShows.size>1?'s':''}</span>` : ''}
@@ -1576,11 +1583,11 @@ function renderBacklog() {
       </div>
       <div class="bl-body">`;
 
-    if (!clean.length && !blocked.length) {
+    if (!clean.length && !blocked.length && !transcoding.length) {
       html += `<div class="no-bl">No drafts in backlog</div>`;
     } else {
       // Group episodes by show, render standalone titles normally
-      function renderItems(items, isBlocked) {
+      function renderItems(items, isBlocked, isTranscodingGroup) {
         // Separate episodes and standalone
         const episodeGroups = {};
         const standalone = [];
@@ -1599,10 +1606,11 @@ function renderBacklog() {
           const pHtml = (APP.hasPriority && item.priority !== 'Standard')
             ? `<span class="p-badge ${pCls}" style="font-size:9px${isBlocked ? ';opacity:0.6' : ''}">${item.priority}</span>`
             : '';
-          html += `<div class="bl-row${isBlocked ? ' blocked' : ''}">
+          html += `<div class="bl-row${isBlocked ? ' blocked' : ''}${isTranscodingGroup ? ' transcoding-row' : ''}">
             ${pHtml}
             ${contentTypeBadge(item)}
             <span class="bl-title">${item.title}</span>
+            ${isTranscodingGroup ? '<span class="transcoding-badge">Transcoding</span>' : ''}
             ${isBlocked ? '<span class="cic-badge">CIC</span>' : ''}
             ${isBlocked ? disputeStatusBadge(item.disputeStatus) : ''}
           </div>`;
@@ -1661,8 +1669,9 @@ function renderBacklog() {
         });
       }
 
-      renderItems(clean, false);
-      renderItems(blocked, true);
+      renderItems(transcoding, false, true);
+      renderItems(clean, false, false);
+      renderItems(blocked, true, false);
     }
 
     html += `</div></div>`;
