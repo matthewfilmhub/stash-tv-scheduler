@@ -335,6 +335,7 @@ table.cal tbody td.open-col {
 .dispute-badge.review   { background: rgba(234,179,8,0.12); color: #eab308; }
 .dispute-badge.rejected { background: rgba(239,68,68,0.12); color: #ef4444; }
 .transcoding-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(6,182,212,0.15); color: var(--teal); }
+.age-badge { font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; background: rgba(168,85,247,0.15); color: #a855f7; letter-spacing: 0.3px; }
 
 /* ── FOOTER ── */
 .app-footer {
@@ -1388,6 +1389,7 @@ function processCSV(rows) {
     const hasCIC = (iCopyright !== -1)
       ? (copyrightVal === 'yes' || copyrightVal === 'true')
       : /cic/i.test(restrictions);
+    const isAgeRestricted = /age.?restrict/i.test(restrictions);
 
     const isRemoved = visibility === 'removed';
     const isBlocked = visibility === 'blocked';
@@ -1414,7 +1416,7 @@ function processCSV(rows) {
     const contentType = (titleFormat || '').toLowerCase() === 'movie' ? 'movie'
                       : isEpisode ? 'episode' : '';
 
-    items.push({ channel, title, visibility, restrictions, publishDate, createdDate, uploadDate, daysBetween, priority, hasCIC, disputeStatus, titleFormat, contentType, isEpisode, showName: epInfo.showName, season: epInfo.season, epStart: epInfo.epStart, epEnd: epInfo.epEnd, status, takedown });
+    items.push({ channel, title, visibility, restrictions, publishDate, createdDate, uploadDate, daysBetween, priority, hasCIC, isAgeRestricted, disputeStatus, titleFormat, contentType, isEpisode, showName: epInfo.showName, season: epInfo.season, epStart: epInfo.epStart, epEnd: epInfo.epEnd, status, takedown });
   }
 
   APP.items = items;
@@ -1937,6 +1939,7 @@ function renderWatchlist() {
         <span class="p-badge ${pCls}">${item.priority}</span>
         <span class="title">${item.title}</span>
         ${item.hasCIC ? `<span class="cic-tag">CIC</span>` : ''}
+        ${item.isAgeRestricted ? `<span class="age-badge">18+</span>` : ''}
       </div>`;
     });
 
@@ -2012,7 +2015,8 @@ function renderCalendarWeek(containerId, weekOffset) {
           const pHtml = (APP.hasPriority && item.priority !== 'Standard')
             ? `<span class="pill-priority pp-${item.priority.toLowerCase()}">${item.priority}</span>`
             : '';
-          html += `<span class="pill" style="background:${color}" data-tip="${item.title}${item.priority !== 'Standard' ? ' · ' + item.priority : ''}">${label}${pHtml}</span>`;
+          const ageHtml = item.isAgeRestricted ? `<span class="pill-priority" style="background:rgba(168,85,247,0.9);color:#fff">18+</span>` : '';
+          html += `<span class="pill" style="background:${color}" data-tip="${item.title}${item.priority !== 'Standard' ? ' · ' + item.priority : ''}${item.isAgeRestricted ? ' · 18+' : ''}">${label}${pHtml}${ageHtml}</span>`;
         });
       } else {
         html += `<div class="open-dash">—</div>`;
@@ -2130,6 +2134,7 @@ function renderBacklog() {
             ${isTranscodingGroup ? '<span class="transcoding-badge">Transcoding</span>' : ''}
             ${isBlocked ? '<span class="cic-badge">CIC</span>' : ''}
             ${isBlocked ? disputeStatusBadge(item.disputeStatus) : ''}
+            ${item.isAgeRestricted ? '<span class="age-badge">18+</span>' : ''}
           </div>`;
         });
 
@@ -2251,6 +2256,7 @@ async function loadFromAPI() {
       const d = json.data;
       APP.items = d.items.map(i => ({
         ...i,
+        isAgeRestricted: i.isAgeRestricted || false,
         publishDate: i.publishDate ? new Date(i.publishDate) : null,
         createdDate: i.createdDate ? new Date(i.createdDate) : null,
         uploadDate:  i.uploadDate  ? new Date(i.uploadDate)  : null
@@ -2304,10 +2310,28 @@ async function saveToAPI() {
       setCloudStatus('saved');
     } else {
       setCloudStatus('error', json.error);
+      showSaveAlert('error', json.error || 'Save failed');
     }
   } catch (err) {
     setCloudStatus('error', err.message);
+    showSaveAlert('error', 'Could not reach the server — check your connection.');
   }
+}
+
+function showSaveAlert(type, msg) {
+  const existing = document.getElementById('save-alert');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'save-alert';
+  const isErr = type === 'error';
+  el.style.cssText = `position:fixed;top:calc(var(--topnav-h,0px) + 12px);left:50%;transform:translateX(-50%);z-index:1000;
+    padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;
+    background:${isErr ? '#3b0000' : '#003b00'};color:${isErr ? '#ff6b6b' : '#6bff6b'};
+    border:1px solid ${isErr ? '#ff4444' : '#44ff44'};box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    display:flex;align-items:center;gap:10px;max-width:480px;text-align:center;`;
+  el.innerHTML = `${isErr ? '⚠' : '✓'} ${msg} <button onclick="this.parentNode.remove()" style="background:none;border:none;color:inherit;font-size:16px;cursor:pointer;margin-left:6px;opacity:0.7">×</button>`;
+  document.body.appendChild(el);
+  if (!isErr) setTimeout(() => el.remove(), 4000);
 }
 
 function setCloudStatus(state, detail) {
