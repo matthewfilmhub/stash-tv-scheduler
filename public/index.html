@@ -730,6 +730,20 @@ html{font-size:16px;}
 .report-pager button:hover:not(:disabled){border-color:var(--orange);color:var(--orange);}
 .report-pager button:disabled{opacity:0.3;cursor:default;}
 
+/* ── Completion tracking ── */
+.complete-btn{padding:3px 11px;border-radius:3px;font-size:0.66rem;font-weight:700;border:1px solid var(--border-hi);background:transparent;color:var(--text-muted);cursor:pointer;font-family:inherit;transition:all 0.15s;white-space:nowrap;flex-shrink:0;letter-spacing:0.02em;}
+.complete-btn:hover{border-color:var(--green);color:var(--green);}
+.complete-btn.done{background:var(--green-dim);color:var(--green);border-color:var(--green-bdr);}
+.t-block.ta-done{border-color:var(--green-bdr);opacity:0.7;}
+.t-block.ta-done .t-head{background:rgba(114,201,126,0.05);}
+.ta-progress-wrap{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.ta-progress-track{flex:1;min-width:100px;height:5px;background:var(--bg-2);border-radius:3px;overflow:hidden;}
+.ta-progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width 0.3s;}
+.ta-save-indicator{font-size:0.67rem;color:var(--text-dim);}
+.ta-save-indicator.saving{color:var(--amber);}
+.ta-save-indicator.saved{color:var(--green);}
+.ta-save-indicator.error{color:var(--red);}
+
 /* ── Report ── */
 #reportSection{display:none;}
 .report-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:8px;}
@@ -1148,6 +1162,12 @@ html{font-size:16px;}
           <button class="f-btn" onclick="setFilter('clear',this)">No Overlap</button>
           <button class="f-btn" onclick="setFilter('compliance',this)">Compliance Issues</button>
           <button class="f-btn" onclick="setFilter('not_found',this)">Not Matched</button>
+        </div>
+        <div class="filter-bar" style="margin-top:-10px;margin-bottom:18px;">
+          <span style="font-size:0.68rem;color:var(--text-dim);align-self:center;margin-right:2px;">Tech status:</span>
+          <button class="f-btn cf-btn active" onclick="setCompletionFilter('all',this)">All</button>
+          <button class="f-btn cf-btn" onclick="setCompletionFilter('pending',this)">○ Pending</button>
+          <button class="f-btn cf-btn" onclick="setCompletionFilter('done',this)">✓ Done</button>
         </div>
         <div id="reportContent"></div>
       </div>
@@ -2641,6 +2661,9 @@ let cmsList   = [];  // flat sorted list of CMS entries for autocomplete
 let cmsIdIdx  = new Map(); // id_pattern (no dashes) → cmsEntry  for O(1) ID lookup
 let cmsWordIdx= new Map(); // word → Set<cmsEntry>  for fast candidate filtering
 let activeFilter = 'all';
+let completionFilter = 'all'; // 'all' | 'pending' | 'done'
+let taProgress = {};           // { titleId: { at: ISOstring } }
+let taSaveTimer = null;
 let matchTablePage = 0;    // pagination for match review table
 const MATCH_PAGE_SIZE = 150;
 let reportPage = 0;
@@ -3193,9 +3216,10 @@ async function generate() {
   btn.disabled=false; btn.textContent='Generate Report';
   prog.style.display='none'; fill.style.width='0%';
 
-  reportPage=0;
-  renderReport();
+  reportPage=0; completionFilter='all';
+  // Load cloud progress before rendering so completed states show immediately
   document.getElementById('reportSection').style.display='block';
+  loadTAProgress().then(()=>{ renderReport(); });
   setTimeout(()=>document.getElementById('reportSection').scrollIntoView({behavior:'smooth',block:'start'}),50);
 }
 
@@ -3210,6 +3234,27 @@ function renderReport() {
     <div class="stat s-green"><div class="stat-n">${c.clear}</div>   <div class="stat-l">No Overlap</div></div>
     <div class="stat s-amber"><div class="stat-n">${c.compliance}</div><div class="stat-l">Compliance Issues</div></div>
     <div class="stat s-muted"><div class="stat-n">${c.not_found}</div><div class="stat-l">Not Matched</div></div>`;
+
+  // Progress bar (shows/updates as techs check items off)
+  const done=report.filter(r=>!!taProgress[r.mtv.id]).length;
+  const pct=report.length?Math.round(done/report.length*100):0;
+  const progressHtml=`
+    <div class="ta-progress-wrap">
+      <span style="font-size:0.75rem;font-weight:600;color:var(--text-muted)">Tech Progress</span>
+      <div class="ta-progress-track"><div class="ta-progress-fill" id="taProgressFill" style="width:${pct}%"></div></div>
+      <span id="taProgressText" style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap">${done} / ${report.length} completed (${pct}%)</span>
+      <span id="taSaveIndicator" class="ta-save-indicator"></span>
+      <button onclick="clearTAProgress()" style="padding:2px 9px;border-radius:3px;font-size:0.65rem;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-family:inherit;margin-left:auto;">Reset progress</button>
+    </div>`;
+
+  let progressEl=document.getElementById('taProgressWrap');
+  if(!progressEl){
+    progressEl=document.createElement('div');
+    progressEl.id='taProgressWrap';
+    document.getElementById('statsRow').after(progressEl);
+  }
+  progressEl.innerHTML=progressHtml;
+
   renderFiltered();
 }
 
@@ -3222,11 +3267,16 @@ function setFilter(f,btn) {
 }
 
 function getFilteredRows() {
-  if(activeFilter==='action')    return report.filter(r=>r.status==='action');
-  if(activeFilter==='clear')     return report.filter(r=>r.status==='clear');
-  if(activeFilter==='compliance')return report.filter(r=>r.status==='compliance'||r.compliance.length>0);
-  if(activeFilter==='not_found') return report.filter(r=>r.status==='not_found');
-  return report;
+  let rows=report;
+  // Status filter
+  if(activeFilter==='action')    rows=rows.filter(r=>r.status==='action');
+  else if(activeFilter==='clear')     rows=rows.filter(r=>r.status==='clear');
+  else if(activeFilter==='compliance')rows=rows.filter(r=>r.status==='compliance'||r.compliance.length>0);
+  else if(activeFilter==='not_found') rows=rows.filter(r=>r.status==='not_found');
+  // Completion filter (layered on top of status filter)
+  if(completionFilter==='pending') rows=rows.filter(r=>!taProgress[r.mtv.id]);
+  else if(completionFilter==='done') rows=rows.filter(r=>!!taProgress[r.mtv.id]);
+  return rows;
 }
 
 function renderFiltered() {
@@ -3273,8 +3323,11 @@ function renderBlock(r) {
   const badges={action:'<span class="badge b-red">⚠ ACTION REQUIRED</span>',clear:'<span class="badge b-green">✓ NO CHANGE</span>',compliance:'<span class="badge b-amber">⚡ COMPLIANCE</span>',not_found:'<span class="badge b-muted">? NOT MATCHED</span>'};
   const {cls:cCls,text:cTxt}=confLabel(r.matchScore,r.matchManual);
 
-  if(r.status==='not_found')return`<div class="t-block">
-    <div class="t-head"><div class="t-info"><div class="t-name">${esc(name)}</div><div class="t-matched">No CMS match found — return to Step 2b to assign manually</div></div>${badges.not_found}</div>
+  const isDone=!!taProgress[id];
+  const completeBtn=`<button class="complete-btn${isDone?' done':''}" onclick="toggleComplete('${esc(id)}')">${isDone?'✓ Done':'○ Mark done'}</button>`;
+
+  if(r.status==='not_found')return`<div class="t-block${isDone?' ta-done':''}" data-tid="${esc(id)}">
+    <div class="t-head"><div class="t-info"><div class="t-name">${esc(name)}</div><div class="t-matched">No CMS match found — return to Step 2b to assign manually</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${badges.not_found}${completeBtn}</div></div>
     <div class="not-found-body">Title not found in the YouTube CMS export. Use the title match review above to manually assign the correct CMS entry.<div style="margin-top:4px;font-size:0.65rem;color:var(--text-dim);">M&TV territories: ${r.mtvAll.join(', ')}</div></div>
   </div>`;
 
@@ -3302,7 +3355,7 @@ function renderBlock(r) {
   const fhLine=r.fh?`<div>Filmhub avail: <span class="hi">${r.fh.territories.join(', ')||'—'}</span></div>`:'';
   const winLine=r.mtv.windows.map(w=>`${w.start?w.start+'→'+w.end+' ':''}<span class="hi">${w.territories.join(', ')}</span>`).join(' · ');
 
-  return`<div class="t-block">
+  return`<div class="t-block${isDone?' ta-done':''}" data-tid="${esc(id)}">
     <div class="t-head">
       <div class="t-info">
         <div class="t-name">${esc(name)}</div>
@@ -3312,6 +3365,7 @@ function renderBlock(r) {
       <div class="t-meta">
         ${badges[r.status]}
         <div class="t-mtv-lbl">M&TV: ${r.mtvAll.join(', ')}</div>
+        ${completeBtn}
       </div>
     </div>
     <div class="t-body">
@@ -3327,6 +3381,86 @@ function renderBlock(r) {
 }
 
 // ── Export CSV ─────────────────────────────────────────────────────────
+// ── Territory Audit — Progress Tracking ───────────────────────────────
+async function loadTAProgress() {
+  try {
+    const resp = await fetch('/api/territory');
+    const json = await resp.json();
+    if (json.ok && json.data) {
+      taProgress = json.data.completed || {};
+    }
+  } catch(e) { /* no cloud data yet, stay with empty */ }
+}
+
+function saveTAProgress() {
+  clearTimeout(taSaveTimer);
+  setTASaveStatus('saving');
+  taSaveTimer = setTimeout(async () => {
+    try {
+      await fetch('/api/territory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: taProgress })
+      });
+      setTASaveStatus('saved');
+      setTimeout(() => setTASaveStatus(''), 3000);
+    } catch(e) {
+      setTASaveStatus('error');
+    }
+  }, 1200);
+}
+
+function setTASaveStatus(state) {
+  const el = document.getElementById('taSaveIndicator');
+  if (!el) return;
+  el.className = 'ta-save-indicator' + (state ? ' ' + state : '');
+  el.textContent = state === 'saving' ? '↻ Saving…' : state === 'saved' ? '✓ Saved' : state === 'error' ? '✗ Save failed' : '';
+}
+
+function toggleComplete(titleId) {
+  if (taProgress[titleId]) {
+    delete taProgress[titleId];
+  } else {
+    taProgress[titleId] = { at: new Date().toISOString() };
+  }
+  saveTAProgress();
+  // Update the specific card without re-rendering everything
+  const block = document.querySelector(`.t-block[data-tid="${CSS.escape(titleId)}"]`);
+  if (block) {
+    const isDone = !!taProgress[titleId];
+    block.classList.toggle('ta-done', isDone);
+    const btn = block.querySelector('.complete-btn');
+    if (btn) { btn.classList.toggle('done', isDone); btn.textContent = isDone ? '✓ Done' : '○ Mark done'; }
+  }
+  _refreshTAProgressBar();
+}
+
+function clearTAProgress() {
+  if (!confirm('Clear all completion progress? This cannot be undone.')) return;
+  taProgress = {};
+  saveTAProgress();
+  renderFiltered();
+  _refreshTAProgressBar();
+}
+
+function _refreshTAProgressBar() {
+  const total = report.length;
+  const done  = report.filter(r => !!taProgress[r.mtv.id]).length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+  const text  = document.getElementById('taProgressText');
+  const fill  = document.getElementById('taProgressFill');
+  if (text) text.textContent = `${done} / ${total} completed (${pct}%)`;
+  if (fill) fill.style.width = pct + '%';
+}
+
+function setCompletionFilter(f, btn) {
+  completionFilter = f;
+  reportPage = 0;
+  document.querySelectorAll('.cf-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderFiltered();
+}
+
 function exportCSV() {
   const hdr=['Filmhub ID','M&TV Title','Matched CMS Title','Match Confidence','Stash Channel','Status','Current CMS Territories','M&TV Selected Territories','Territories to Remove','Remaining Stash Territories','CMS Action Required','Filmhub Avail'];
   const body=report.map(r=>{
