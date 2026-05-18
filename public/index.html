@@ -13,23 +13,17 @@
    TOP NAV — shared navigation bar
    ════════════════════════════════════════════════ */
 :root { --topnav-h: 52px; }
-
 .top-nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-  height: var(--topnav-h);
-  background: #0c0c0a;
+  height: var(--topnav-h); background: #0c0c0a;
   border-bottom: 1px solid #2A2A27;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 24px; gap: 16px;
 }
-.top-nav-brand {
-  display: flex; align-items: center; gap: 10px;
-  font-family: 'Inter', -apple-system, sans-serif; flex-shrink: 0;
-}
+.top-nav-brand { display: flex; align-items: center; gap: 10px; font-family: 'Inter', -apple-system, sans-serif; flex-shrink: 0; }
 .top-nav-logo-text { font-size: 0.93rem; font-weight: 600; color: #EDE8DF; letter-spacing: 0.005em; }
 .top-nav-pipe { color: #3C3C38; font-weight: 300; }
 .top-nav-suite { font-size: 0.75rem; color: #888880; }
-
 .top-nav-tabs { display: flex; gap: 4px; }
 .top-tab {
   padding: 7px 16px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
@@ -38,23 +32,16 @@
 }
 .top-tab.active { background: #E86418; color: #0F0F0D; border-color: #E86418; }
 .top-tab:not(.active):hover { border-color: #3C3C38; color: #EDE8DF; }
-
-/* Tool panels — hidden until active */
 .tool-panel { display: none; padding-top: var(--topnav-h); }
 .tool-panel.active { display: block; }
-
-/* Adjust both tools' sticky headers to sit below the fixed nav */
 #tab-sched .app-header { top: var(--topnav-h) !important; }
 #tab-terr .site-header  { top: var(--topnav-h) !important; }
-
 @media print {
   .top-nav { display: none !important; }
   .tool-panel { padding-top: 0 !important; display: block !important; }
 }
 
-/* ════════════════════════════════════════════════
-   SCHEDULER — CSS
-   ════════════════════════════════════════════════ */
+/* ════ SCHEDULER CSS ════ */
 :root {
   --black:    #000000;
   --dark:     #0f0f0f;
@@ -572,9 +559,7 @@ table.cal tbody td.open-col {
   }
 }
 
-/* ════════════════════════════════════════════════
-   TERRITORY AUDIT — CSS  (vars scoped to .tab-terr)
-   ════════════════════════════════════════════════ */
+/* ════ TERRITORY AUDIT CSS ════ */
 .tab-terr {
   --bg:           #0F0F0D;
   --bg-2:         #161614;
@@ -833,10 +818,9 @@ html{font-size:16px;}
 </head>
 <body>
 
-<!-- ══════════════ TOP NAVIGATION ══════════════ -->
 <nav class="top-nav">
   <div class="top-nav-brand">
-    <svg width="20" height="13" viewBox="0 0 44 30" fill="none" aria-hidden="true">
+    <svg width="20" height="13" viewBox="0 0 44 30" fill="none">
       <path d="M22 1L43 15L22 29L1 15L22 1Z" stroke="#EDE8DF" stroke-width="2" fill="none"/>
       <path d="M10 15L22 8L34 15L22 22L10 15Z" fill="#EDE8DF"/>
     </svg>
@@ -845,12 +829,11 @@ html{font-size:16px;}
     <span class="top-nav-suite">Stash TV Tools</span>
   </div>
   <div class="top-nav-tabs">
-    <button class="top-tab active" data-tab="sched" onclick="switchToolTab('sched')">📅 Scheduler</button>
-    <button class="top-tab" data-tab="terr" onclick="switchToolTab('terr')">🗺 Territory Audit</button>
+    <button class="top-tab active" data-tab="sched" onclick="switchToolTab('sched')">&#x1F4C5; Scheduler</button>
+    <button class="top-tab" data-tab="terr" onclick="switchToolTab('terr')">&#x1F5FA; Territory Audit</button>
   </div>
 </nav>
 
-<!-- ══════════════ TAB 1: SCHEDULER ══════════════ -->
 <div id="tab-sched" class="tool-panel active">
 
 <!-- ══════════════ UPLOAD SCREEN ══════════════ -->
@@ -984,7 +967,6 @@ html{font-size:16px;}
 
 </div>
 
-<!-- ══════════════ TAB 2: TERRITORY AUDIT ══════════════ -->
 <div id="tab-terr" class="tool-panel tab-terr">
 
 <!-- Header -->
@@ -1177,23 +1159,18 @@ html{font-size:16px;}
 </div>
 
 <script>
-// ════════════════════════════════════════════════
-//  TAB SWITCHING
-// ════════════════════════════════════════════════
 function switchToolTab(tab) {
-  document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.top-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tool-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.top-tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tab); });
   document.getElementById('tab-' + tab).classList.add('active');
   try { localStorage.setItem('stash-active-tab', tab); } catch(e) {}
 }
 try {
-  const saved = localStorage.getItem('stash-active-tab');
+  var saved = localStorage.getItem('stash-active-tab');
   if (saved === 'terr') switchToolTab('terr');
 } catch(e) {}
 
-// ════════════════════════════════════════════════
-//  SCHEDULER — JavaScript
-// ════════════════════════════════════════════════
+/* ════ SCHEDULER JS ════ */
 // ═══════════════════════════════════════════════
 //  CONSTANTS
 // ═══════════════════════════════════════════════
@@ -2627,9 +2604,7 @@ function loadDemo() {
   }
 })();
 
-// ════════════════════════════════════════════════
-//  TERRITORY AUDIT — JavaScript
-// ════════════════════════════════════════════════
+/* ════ TERRITORY AUDIT JS ════ */
 // ── State ──────────────────────────────────────────────────────────────
 let mtvData   = {};  // { id: { id, name, channel, windows:[{start,end,territories[]}] } }
 let cmsData   = {};  // { key: { id, name, channel, territories[] } }
