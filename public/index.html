@@ -10,7 +10,7 @@
 <style>
 
 /* ════════════════════════════════════════════════
-   TOP NAV — shared across both tools
+   TOP NAV — shared navigation bar
    ════════════════════════════════════════════════ */
 :root { --topnav-h: 52px; }
 
@@ -24,12 +24,9 @@
 }
 .top-nav-brand {
   display: flex; align-items: center; gap: 10px;
-  font-family: 'Inter', -apple-system, sans-serif;
-  flex-shrink: 0;
+  font-family: 'Inter', -apple-system, sans-serif; flex-shrink: 0;
 }
-.top-nav-logo-text {
-  font-size: 0.93rem; font-weight: 600; color: #EDE8DF; letter-spacing: 0.005em;
-}
+.top-nav-logo-text { font-size: 0.93rem; font-weight: 600; color: #EDE8DF; letter-spacing: 0.005em; }
 .top-nav-pipe { color: #3C3C38; font-weight: 300; }
 .top-nav-suite { font-size: 0.75rem; color: #888880; }
 
@@ -42,24 +39,18 @@
 .top-tab.active { background: #E86418; color: #0F0F0D; border-color: #E86418; }
 .top-tab:not(.active):hover { border-color: #3C3C38; color: #EDE8DF; }
 
-/* Each tool panel pushed below the fixed nav */
-.tool-panel { display: none; padding-top: var(--topnav-h); min-height: 100vh; }
+/* Tool panels — hidden until active */
+.tool-panel { display: none; padding-top: var(--topnav-h); }
 .tool-panel.active { display: block; }
 
-/* Adjust scheduler sticky header to sit below top nav */
-#tab-sched .app-header { top: var(--topnav-h); }
-
-/* Adjust TM sticky header to sit below top nav */
-#tab-terr .site-header { top: var(--topnav-h); }
-
-/* Hide whichever logo / site-header is redundant when combined */
-/* Keep TM's site-header as tool identity bar within its tab */
+/* Adjust both tools' sticky headers to sit below the fixed nav */
+#tab-sched .app-header { top: var(--topnav-h) !important; }
+#tab-terr .site-header  { top: var(--topnav-h) !important; }
 
 @media print {
-  .top-nav { display: none; }
-  .tool-panel { padding-top: 0; display: block !important; }
+  .top-nav { display: none !important; }
+  .tool-panel { padding-top: 0 !important; display: block !important; }
 }
-
 
 /* ════════════════════════════════════════════════
    SCHEDULER — CSS
@@ -581,14 +572,15 @@ table.cal tbody td.open-col {
   }
 }
 
-
 /* ════════════════════════════════════════════════
-   TERRITORY AUDIT — CSS  (.tab-terr scoped vars)
+   TERRITORY AUDIT — CSS  (vars scoped to .tab-terr)
    ════════════════════════════════════════════════ */
 .tab-terr {
   --bg:           #0F0F0D;
   --bg-2:         #161614;
   --bg-3:         #1C1C19;
+  background:     #0F0F0D;
+  color:          #EDE8DF;
   --border:       #2A2A27;
   --border-hi:    #3C3C38;
   --text:         #EDE8DF;
@@ -613,7 +605,7 @@ table.cal tbody td.open-col {
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{font-size:16px;}
-body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+#tab-terr{font-family:'Inter','Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
 
 /* ── Header ── */
 .site-header{display:flex;align-items:center;gap:16px;padding:15px 36px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:60;}
@@ -646,7 +638,7 @@ body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;background:var(--bg);
 .step-head-text h3{font-size:0.9rem;font-weight:600;line-height:1.3;}
 .step-head-text p{font-size:0.73rem;color:var(--text-muted);margin-top:2px;}
 .step-opt{margin-left:auto;font-size:0.63rem;color:var(--text-muted);border:1px solid var(--border);padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
-.step-body{padding:18px 22px;background:var(--bg-3);border-radius:0 0 8px 8px;}
+.step-#tab-terr{padding:18px 22px;background:var(--bg-3);border-radius:0 0 8px 8px;}
 .step-loaded-num{margin-left:auto;font-size:0.7rem;color:var(--green);background:var(--green-dim);padding:2px 8px;border-radius:3px;border:1px solid var(--green-bdr);white-space:nowrap;flex-shrink:0;}
 
 /* ── Upload zone ── */
@@ -760,7 +752,7 @@ body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;background:var(--bg);
 .report-meta{font-size:0.7rem;color:var(--text-muted);margin-top:2px;}
 .rpt-actions{display:flex;gap:8px;align-items:center;}
 .exp-lbl{font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;}
-.report-body{padding:22px;background:var(--bg-3);}
+.report-#tab-terr{padding:22px;background:var(--bg-3);}
 
 /* ── Stats ── */
 .stats{display:flex;gap:1px;background:var(--border);border-radius:6px;overflow:hidden;margin-bottom:22px;}
@@ -795,7 +787,7 @@ body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;background:var(--bg);
 .b-muted{background:var(--bg-3);     color:var(--text-muted);border:1px solid var(--border);}
 
 /* ── Territory grid ── */
-.t-body{padding:15px 17px;}
+.t-#tab-terr{padding:15px 17px;}
 .terr-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:11px;}
 @media(max-width:600px){.terr-grid{grid-template-columns:1fr;}}
 .tg-lbl{font-size:0.6rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
@@ -821,7 +813,7 @@ body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;background:var(--bg);
 .t-supp .hi{color:var(--orange);font-family:'Courier New',monospace;}
 
 /* ── Not found ── */
-.not-found-body{padding:14px 17px;font-size:0.78rem;color:var(--text-muted);line-height:1.6;}
+.not-found-#tab-terr{padding:14px 17px;font-size:0.78rem;color:var(--text-muted);line-height:1.6;}
 .no-results{text-align:center;padding:44px;color:var(--text-dim);font-size:0.84rem;}
 
 /* ── Match table pagination ── */
@@ -833,7 +825,7 @@ body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;background:var(--bg);
 @media print{
   .site-header,.page-intro,.flow,.step,.gen-wrap{display:none;}
   .report-card{border:none;}
-  body{background:white;color:black;}
+  #tab-terr{background:white;color:black;}
   .t-block{break-inside:avoid;}
 }
 
@@ -1181,7 +1173,6 @@ body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;background:var(--bg);
 
 </div>
 
-<script>
 
 </div>
 
@@ -1195,8 +1186,6 @@ function switchToolTab(tab) {
   document.getElementById('tab-' + tab).classList.add('active');
   try { localStorage.setItem('stash-active-tab', tab); } catch(e) {}
 }
-
-// Restore last active tab on page load
 try {
   const saved = localStorage.getItem('stash-active-tab');
   if (saved === 'terr') switchToolTab('terr');
