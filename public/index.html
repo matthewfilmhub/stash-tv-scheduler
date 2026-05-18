@@ -1088,6 +1088,12 @@ html{font-size:16px;}
         </div>
       </div>
       <div class="match-summary" id="matchSummary"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="font-size:0.7rem;color:var(--text-muted);">Show:</span>
+        <button id="mfBtnAll" class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:3px 11px;border-radius:3px;" onclick="setMatchFilter('all',this)">All titles</button>
+        <button id="mfBtnReview" class="btn btn-ghost btn-sm" style="font-size:0.7rem;padding:3px 11px;border-radius:3px;" onclick="setMatchFilter('review',this)">⚠ Needs review only</button>
+        <span id="matchFilterCount" style="font-size:0.68rem;color:var(--text-dim);margin-left:4px;"></span>
+      </div>
       <div class="match-table-wrap">
         <table class="match-table">
           <thead><tr><th>M&TV Title</th><th></th><th>Matched CMS Title</th><th>Confidence</th><th>Override</th></tr></thead>
@@ -2666,6 +2672,7 @@ let taProgress = {};           // { titleId: { at: ISOstring } }
 let taSaveTimer = null;
 let matchTablePage = 0;    // pagination for match review table
 const MATCH_PAGE_SIZE = 150;
+let matchFilter = 'all';   // 'all' | 'review'
 let reportPage = 0;
 const REPORT_PAGE_SIZE = 50;
 
@@ -2977,17 +2984,22 @@ async function runMatching() {
 
 function renderMatchRow(mtv) {
   const m=matches[mtv.id]||{};
-  const {cls,text}=confLabel(m.score||0,m.manual);
+  const isNoMatch=m.manual&&m.noMatch;
+  const {cls,text}=isNoMatch
+    ? {cls:'conf-none',text:'SKIPPED'}
+    : confLabel(m.score||0,m.manual);
   const cmsName=m.cmsEntry?.name||'';
+  const cmsCellText=isNoMatch?'skipped — no match':cmsName?esc(cmsName):'no match found';
+  const cmsCellCls=cmsName?'matched':'no-match';
   return `<tr>
     <td class="mt-mtv">${esc(mtv.name)}</td>
     <td class="mt-arrow">→</td>
-    <td class="mt-cms ${cmsName?'matched':'no-match'}">${cmsName?esc(cmsName):'no match found'}</td>
+    <td class="mt-cms ${cmsCellCls}">${cmsCellText}</td>
     <td class="mt-conf"><span class="conf ${cls}" id="conf-${esc(mtv.id)}">${text}</span></td>
     <td class="mt-action">
       <div class="ac-wrap" data-mtvid="${esc(mtv.id)}">
         <input type="text" class="ac-input${m.manual?' has-manual':''}" value="${esc(cmsName)}"
-          placeholder="— type to search —"
+          placeholder="${isNoMatch?'— no match —':'— type to search —'}"
           oninput="acSearch(this)" onfocus="acSearch(this)" onblur="acBlur(this)">
         <div class="ac-dropdown"></div>
       </div>
@@ -3017,23 +3029,41 @@ function renderMatchTable() {
   document.getElementById('matchBadge').style.color=issues?'var(--amber)':'var(--green)';
   document.getElementById('matchBadge').style.borderColor=issues?'var(--amber-bdr)':'var(--green-bdr)';
 
-  // Paginate — render MATCH_PAGE_SIZE rows at a time to keep DOM fast
+  // Apply filter — "review" shows only titles still needing a decision
+  const needsReview = m => { const match=matches[m.id]; if(!match||match.manual) return false; return (match.score||0)<0.90; };
+  const displayEntries = matchFilter==='review' ? mtvEntries.filter(needsReview) : mtvEntries;
+  const displayTotal = displayEntries.length;
+
+  // Update filter button styles and count label
+  const mfAll=document.getElementById('mfBtnAll');
+  const mfRev=document.getElementById('mfBtnReview');
+  const reviewCount=mtvEntries.filter(needsReview).length;
+  if(mfAll){ mfAll.style.background=matchFilter==='all'?'var(--orange)':''; mfAll.style.color=matchFilter==='all'?'#0F0F0D':''; mfAll.style.borderColor=matchFilter==='all'?'var(--orange)':''; }
+  if(mfRev){ mfRev.style.background=matchFilter==='review'?'var(--amber)':''; mfRev.style.color=matchFilter==='review'?'#0F0F0D':''; mfRev.style.borderColor=matchFilter==='review'?'var(--amber)':''; }
+  const countEl=document.getElementById('matchFilterCount');
+  if(countEl) countEl.textContent=matchFilter==='review'?`${reviewCount} title${reviewCount!==1?'s':''} need a decision`:'';
+
+  // Paginate
   const start=matchTablePage*MATCH_PAGE_SIZE;
-  const end=Math.min(start+MATCH_PAGE_SIZE,total);
-  const pageEntries=mtvEntries.slice(start,end);
+  const end=Math.min(start+MATCH_PAGE_SIZE,displayTotal);
+  const pageEntries=displayEntries.slice(start,end);
 
-  document.getElementById('matchTableBody').innerHTML=pageEntries.map(renderMatchRow).join('');
+  if(!displayTotal){
+    document.getElementById('matchTableBody').innerHTML=`<tr><td colspan="5" style="padding:24px;text-align:center;color:var(--text-dim);font-size:0.8rem;">All titles have been reviewed ✓</td></tr>`;
+  } else {
+    document.getElementById('matchTableBody').innerHTML=pageEntries.map(renderMatchRow).join('');
+  }
 
-  // Pager row (appended outside the table)
+  // Pager row
   const wrap=document.querySelector('.match-table-wrap');
   let pager=document.getElementById('matchPager');
   if(!pager){pager=document.createElement('div');pager.id='matchPager';pager.className='match-pager';wrap.after(pager);}
-  const pages=Math.ceil(total/MATCH_PAGE_SIZE);
+  const pages=Math.ceil(displayTotal/MATCH_PAGE_SIZE);
   if(pages<=1){pager.style.display='none';}else{
     pager.style.display='flex';
     pager.innerHTML=`
       <button onclick="setMatchPage(${matchTablePage-1})" ${matchTablePage===0?'disabled':''}>← Prev</button>
-      <span>Page ${matchTablePage+1} of ${pages} &nbsp;·&nbsp; showing ${start+1}–${end} of ${total.toLocaleString()} titles</span>
+      <span>Page ${matchTablePage+1} of ${pages} &nbsp;·&nbsp; showing ${start+1}–${end} of ${displayTotal.toLocaleString()} titles</span>
       <button onclick="setMatchPage(${matchTablePage+1})" ${matchTablePage>=pages-1?'disabled':''}>Next →</button>`;
   }
 }
@@ -3042,6 +3072,12 @@ function setMatchPage(p) {
   matchTablePage=p;
   renderMatchTable();
   document.querySelector('.match-table-wrap').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function setMatchFilter(f, btn) {
+  matchFilter=f;
+  matchTablePage=0;
+  renderMatchTable();
 }
 
 // ── Autocomplete for match override ──────────────────────────────────────
@@ -3056,6 +3092,7 @@ function acSearch(input) {
     results=cmsList.filter(c=>c.name.toLowerCase().includes(q)||normTitle(c.name).includes(qn)).slice(0,15);
   }
   let html=`<div class="ac-item ac-clear" onmousedown="acClear(event,${JSON.stringify(mtvId)})">↺ Auto-match</div>`;
+  html+=`<div class="ac-item" style="color:var(--red);opacity:0.85;" onmousedown="acNoMatch(event,${JSON.stringify(mtvId)})">✗ No match — skip this title</div>`;
   html+=results.map(c=>`<div class="ac-item" onmousedown="acSelect(event,${JSON.stringify(mtvId)},${JSON.stringify(c.name)})">${esc(c.name)}</div>`).join('');
   dd.innerHTML=html;
   dd.style.display='block';
@@ -3083,6 +3120,24 @@ function acSelect(e, mtvId, cmsName) {
   }
   const badge=document.getElementById('conf-'+mtvId);
   if(badge){badge.className='conf conf-manual';badge.textContent='MANUAL';}
+  _refreshMatchSummary();
+}
+
+function acNoMatch(e, mtvId) {
+  e.preventDefault();
+  matches[mtvId]={cmsEntry:null,score:0,manual:true,noMatch:true};
+  const wrap=document.querySelector(`.ac-wrap[data-mtvid="${CSS.escape(mtvId)}"]`);
+  if(wrap){
+    const input=wrap.querySelector('.ac-input');
+    input.value='';
+    input.placeholder='— no match —';
+    input.className='ac-input has-manual';
+    wrap.querySelector('.ac-dropdown').style.display='none';
+    const row=wrap.closest('tr');
+    if(row){const td=row.querySelector('.mt-cms');if(td){td.textContent='skipped — no match';td.className='mt-cms no-match';}}
+  }
+  const badge=document.getElementById('conf-'+mtvId);
+  if(badge){badge.className='conf conf-none';badge.textContent='SKIPPED';}
   _refreshMatchSummary();
 }
 
