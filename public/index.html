@@ -3,8 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stash TV — Content Scheduler</title>
+<title>Stash TV — Content Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+
+/* ════════════════════════════════════════════════
+   TOP NAV — shared across both tools
+   ════════════════════════════════════════════════ */
+:root { --topnav-h: 52px; }
+
+.top-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: var(--topnav-h);
+  background: #0c0c0a;
+  border-bottom: 1px solid #2A2A27;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; gap: 16px;
+}
+.top-nav-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  flex-shrink: 0;
+}
+.top-nav-logo-text {
+  font-size: 0.93rem; font-weight: 600; color: #EDE8DF; letter-spacing: 0.005em;
+}
+.top-nav-pipe { color: #3C3C38; font-weight: 300; }
+.top-nav-suite { font-size: 0.75rem; color: #888880; }
+
+.top-nav-tabs { display: flex; gap: 4px; }
+.top-tab {
+  padding: 7px 16px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; border: 1px solid transparent; transition: all 0.15s;
+  color: #888880; background: transparent; font-family: inherit; letter-spacing: 0.01em;
+}
+.top-tab.active { background: #E86418; color: #0F0F0D; border-color: #E86418; }
+.top-tab:not(.active):hover { border-color: #3C3C38; color: #EDE8DF; }
+
+/* Each tool panel pushed below the fixed nav */
+.tool-panel { display: none; padding-top: var(--topnav-h); min-height: 100vh; }
+.tool-panel.active { display: block; }
+
+/* Adjust scheduler sticky header to sit below top nav */
+#tab-sched .app-header { top: var(--topnav-h); }
+
+/* Adjust TM sticky header to sit below top nav */
+#tab-terr .site-header { top: var(--topnav-h); }
+
+/* Hide whichever logo / site-header is redundant when combined */
+/* Keep TM's site-header as tool identity bar within its tab */
+
+@media print {
+  .top-nav { display: none; }
+  .tool-panel { padding-top: 0; display: block !important; }
+}
+
+
+/* ════════════════════════════════════════════════
+   SCHEDULER — CSS
+   ════════════════════════════════════════════════ */
 :root {
   --black:    #000000;
   --dark:     #0f0f0f;
@@ -521,9 +580,286 @@ table.cal tbody td.open-col {
     font-size: 11px; color: #999;
   }
 }
+
+
+/* ════════════════════════════════════════════════
+   TERRITORY AUDIT — CSS  (.tab-terr scoped vars)
+   ════════════════════════════════════════════════ */
+.tab-terr {
+  --bg:           #0F0F0D;
+  --bg-2:         #161614;
+  --bg-3:         #1C1C19;
+  --border:       #2A2A27;
+  --border-hi:    #3C3C38;
+  --text:         #EDE8DF;
+  --text-muted:   #888880;
+  --text-dim:     #4A4A46;
+  --orange:       #E86418;
+  --orange-h:     #FF7028;
+  --orange-dim:   rgba(232,100,24,0.13);
+  --orange-bdr:   rgba(232,100,24,0.35);
+  --green:        #72C97E;
+  --green-dim:    rgba(114,201,126,0.10);
+  --green-bdr:    rgba(114,201,126,0.30);
+  --red:          #E05A4A;
+  --red-dim:      rgba(224,90,74,0.12);
+  --red-bdr:      rgba(224,90,74,0.30);
+  --amber:        #E8B84A;
+  --amber-dim:    rgba(232,184,74,0.10);
+  --amber-bdr:    rgba(232,184,74,0.30);
+  --blue:         #5B9CF6;
+  --blue-dim:     rgba(91,156,246,0.10);
+  --blue-bdr:     rgba(91,156,246,0.30);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:16px;}
+body{font-family:'Inter','Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+/* ── Header ── */
+.site-header{display:flex;align-items:center;gap:16px;padding:15px 36px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:60;}
+.logo-lockup{display:flex;align-items:center;gap:9px;}
+.logo-wordmark{font-size:0.93rem;font-weight:600;color:var(--text);letter-spacing:0.005em;}
+.hdr-pipe{color:var(--border-hi);font-weight:300;}
+.hdr-tool{font-size:0.78rem;color:var(--text-muted);}
+
+/* ── Page ── */
+.page{max-width:980px;margin:0 auto;padding:48px 28px 100px;}
+.page-intro{margin-bottom:48px;}
+.page-intro h1{font-size:2.2rem;font-weight:500;letter-spacing:-0.03em;line-height:1.1;margin-bottom:12px;}
+.page-intro h1 em{color:var(--orange);font-style:normal;}
+.page-intro p{font-size:0.86rem;color:var(--text-muted);max-width:500px;line-height:1.75;}
+
+/* ── Flow ── */
+.flow{display:flex;align-items:center;margin-bottom:44px;overflow-x:auto;padding-bottom:2px;gap:0;}
+.flow-node{flex-shrink:0;padding:9px 14px;border:1px solid var(--border);border-radius:5px;min-width:120px;text-align:center;}
+.fn-lbl{font-size:0.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;}
+.fn-name{font-size:0.77rem;font-weight:500;color:var(--text-muted);}
+.flow-node.on{border-color:var(--orange-bdr);background:var(--orange-dim);}
+.flow-node.on .fn-name{color:var(--orange);}
+.flow-arrow{flex-shrink:0;color:var(--text-dim);padding:0 8px;font-size:0.85rem;}
+
+/* ── Step cards ── */
+.step{border:1px solid var(--border);border-radius:8px;margin-bottom:12px;}
+.step-head{display:flex;align-items:center;gap:13px;padding:17px 22px;background:var(--bg-2);border-bottom:1px solid var(--border);border-radius:8px 8px 0 0;}
+.step-num{width:25px;height:25px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0;background:var(--orange);color:#0F0F0D;}
+.step-num.opt{background:transparent;border:1px solid var(--border-hi);color:var(--text-muted);}
+.step-head-text h3{font-size:0.9rem;font-weight:600;line-height:1.3;}
+.step-head-text p{font-size:0.73rem;color:var(--text-muted);margin-top:2px;}
+.step-opt{margin-left:auto;font-size:0.63rem;color:var(--text-muted);border:1px solid var(--border);padding:2px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.step-body{padding:18px 22px;background:var(--bg-3);border-radius:0 0 8px 8px;}
+.step-loaded-num{margin-left:auto;font-size:0.7rem;color:var(--green);background:var(--green-dim);padding:2px 8px;border-radius:3px;border:1px solid var(--green-bdr);white-space:nowrap;flex-shrink:0;}
+
+/* ── Upload zone ── */
+.upload-zone{border:1px dashed var(--border-hi);border-radius:6px;padding:32px 20px;text-align:center;cursor:pointer;position:relative;transition:border-color 0.2s,background 0.2s;}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--orange);background:var(--orange-dim);}
+.uz-icon{font-size:1.5rem;margin-bottom:9px;opacity:0.65;}
+.uz-lbl{font-size:0.83rem;color:var(--text);}
+.uz-lbl span{color:var(--orange);}
+.uz-hint{font-size:0.7rem;color:var(--text-muted);margin-top:5px;line-height:1.5;}
+
+/* ── Loaded state ── */
+.loaded-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:5px;border:1px solid var(--green-bdr);background:var(--green-dim);font-size:0.8rem;}
+.lcheck{color:var(--green);}
+.lreset{margin-left:auto;background:none;border:none;color:var(--text-muted);font-size:0.7rem;cursor:pointer;text-decoration:underline;font-family:inherit;}
+
+/* ── Column mapper ── */
+.col-mapper{margin-top:12px;padding:12px 14px;border:1px solid var(--amber-bdr);background:var(--amber-dim);border-radius:5px;}
+.col-mapper p{font-size:0.76rem;color:var(--amber);margin-bottom:9px;}
+.cmap-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.cmap-row label{font-size:0.7rem;color:var(--text-muted);white-space:nowrap;}
+.cmap-row select{padding:5px 8px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.76rem;font-family:inherit;}
+
+/* ── Info note ── */
+.info-note{padding:9px 13px;border-radius:4px;margin-bottom:14px;font-size:0.74rem;color:var(--text-muted);line-height:1.65;background:var(--bg-2);border-left:2px solid var(--border-hi);}
+.info-note code{font-size:0.7rem;color:var(--orange);background:var(--orange-dim);padding:1px 5px;border-radius:3px;}
+
+/* ── Preview table ── */
+.preview-wrap{margin-top:11px;border:1px solid var(--border);border-radius:5px;overflow-x:auto;}
+.preview-table{width:100%;border-collapse:collapse;font-size:0.7rem;}
+.preview-table th{background:var(--bg-2);color:var(--text-muted);font-weight:500;padding:6px 11px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.preview-table td{padding:6px 11px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;}
+.preview-table tr:last-child td{border-bottom:none;}
+.preview-table td.hi{color:var(--orange);font-weight:500;}
+.preview-more{font-size:0.66rem;color:var(--text-dim);text-align:right;margin-top:4px;}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:4px;font-size:0.78rem;font-weight:500;font-family:inherit;border:none;cursor:pointer;letter-spacing:0.01em;transition:all 0.15s;}
+.btn-orange{background:var(--orange);color:#0F0F0D;}
+.btn-orange:hover{background:var(--orange-h);}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-muted);}
+.btn-ghost:hover{border-color:var(--border-hi);color:var(--text);}
+.btn-sm{padding:4px 10px;font-size:0.7rem;}
+
+/* ── Match Review section ── */
+#matchReview{display:none;}
+.match-intro{font-size:0.8rem;color:var(--text-muted);line-height:1.65;margin-bottom:16px;}
+.match-summary{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.ms-chip{padding:5px 12px;border-radius:20px;font-size:0.72rem;font-weight:600;border:1px solid;}
+.ms-strong{background:var(--green-dim);color:var(--green);border-color:var(--green-bdr);}
+.ms-likely{background:var(--amber-dim);color:var(--amber);border-color:var(--amber-bdr);}
+.ms-uncertain{background:var(--red-dim);color:var(--red);border-color:var(--red-bdr);}
+.ms-none{background:var(--bg-2);color:var(--text-muted);border-color:var(--border);}
+
+/* Match table */
+.match-table-wrap{border:1px solid var(--border);border-radius:6px;overflow:hidden;overflow-x:auto;}
+.match-table{width:100%;border-collapse:collapse;font-size:0.76rem;}
+.match-table th{background:var(--bg-2);color:var(--text-muted);font-weight:500;padding:8px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+.match-table td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.match-table tr:last-child td{border-bottom:none;}
+.match-table tr:hover td{background:rgba(255,255,255,0.015);}
+.mt-mtv{font-weight:500;color:var(--text);}
+.mt-arrow{color:var(--text-dim);text-align:center;width:28px;}
+.mt-cms{color:var(--text-muted);max-width:300px;}
+.mt-cms.matched{color:var(--text);}
+.mt-cms.no-match{color:var(--text-dim);font-style:italic;}
+.mt-conf{white-space:nowrap;}
+.mt-action{white-space:nowrap;}
+
+/* Confidence badges */
+.conf{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:3px;font-size:0.64rem;font-weight:700;letter-spacing:0.04em;white-space:nowrap;}
+.conf-strong  {background:var(--green-dim);color:var(--green);border:1px solid var(--green-bdr);}
+.conf-likely  {background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-bdr);}
+.conf-uncertain{background:var(--red-dim);color:var(--red);border:1px solid var(--red-bdr);}
+.conf-manual  {background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-bdr);}
+.conf-none    {background:var(--bg-2);color:var(--text-dim);border:1px solid var(--border);}
+
+/* Override autocomplete */
+.ac-wrap{position:relative;display:inline-block;min-width:230px;}
+.ac-input{width:100%;padding:4px 8px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:0.7rem;font-family:inherit;cursor:text;}
+.ac-input:focus{outline:none;border-color:var(--orange);color:var(--text);}
+.ac-input.has-manual{color:var(--blue);border-color:var(--blue-bdr);}
+.ac-dropdown{position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:200;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:4px;max-height:230px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,0.5);display:none;}
+.ac-item{padding:6px 10px;font-size:0.69rem;cursor:pointer;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ac-item:hover{background:var(--orange-dim);color:var(--orange);}
+.ac-item:last-child{border-bottom:none;}
+.ac-item.ac-clear{color:var(--text-dim);font-style:italic;}
+
+/* ── Generate button ── */
+.gen-wrap{padding:22px;text-align:center;border-radius:0 0 8px 8px;}
+.btn-gen{width:100%;max-width:400px;padding:12px 28px;border:none;border-radius:4px;background:var(--orange);color:#0F0F0D;font-size:0.9rem;font-weight:600;font-family:inherit;cursor:pointer;letter-spacing:0.01em;transition:background 0.15s;}
+.btn-gen:hover:not(:disabled){background:var(--orange-h);}
+.btn-gen:disabled{opacity:0.55;cursor:default;}
+.gen-hint{font-size:0.7rem;color:var(--text-dim);margin-top:7px;}
+.gen-progress{display:none;margin:12px auto 0;max-width:400px;}
+.gen-progress-text{font-size:0.74rem;color:var(--text-muted);margin-bottom:5px;}
+.gen-progress-track{height:4px;background:var(--bg-2);border-radius:2px;overflow:hidden;}
+.gen-progress-fill{height:100%;background:var(--orange);width:0%;transition:width 0.15s;}
+
+/* ── Report pagination ── */
+.report-pager{display:flex;align-items:center;justify-content:space-between;padding:12px 0 4px;font-size:0.72rem;color:var(--text-muted);}
+.report-pager button{padding:5px 14px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--text-muted);font-size:0.72rem;font-family:inherit;cursor:pointer;}
+.report-pager button:hover:not(:disabled){border-color:var(--orange);color:var(--orange);}
+.report-pager button:disabled{opacity:0.3;cursor:default;}
+
+/* ── Report ── */
+#reportSection{display:none;}
+.report-card{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:8px;}
+.report-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:17px 22px;background:var(--bg-2);border-bottom:1px solid var(--border);}
+.report-head h2{font-size:0.93rem;font-weight:600;}
+.report-meta{font-size:0.7rem;color:var(--text-muted);margin-top:2px;}
+.rpt-actions{display:flex;gap:8px;align-items:center;}
+.exp-lbl{font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;}
+.report-body{padding:22px;background:var(--bg-3);}
+
+/* ── Stats ── */
+.stats{display:flex;gap:1px;background:var(--border);border-radius:6px;overflow:hidden;margin-bottom:22px;}
+.stat{flex:1;padding:14px 12px;background:var(--bg-2);text-align:center;}
+.stat-n{font-size:1.85rem;font-weight:600;letter-spacing:-0.04em;line-height:1;}
+.stat-l{font-size:0.62rem;color:var(--text-muted);margin-top:3px;text-transform:uppercase;letter-spacing:0.05em;}
+.stat.s-red .stat-n{color:var(--red);}
+.stat.s-green .stat-n{color:var(--green);}
+.stat.s-amber .stat-n{color:var(--amber);}
+.stat.s-muted .stat-n{color:var(--text-dim);}
+
+/* ── Filter bar ── */
+.filter-bar{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;}
+.f-btn{padding:4px 12px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.7rem;font-family:inherit;cursor:pointer;transition:all 0.15s;}
+.f-btn.active{background:var(--orange);color:#0F0F0D;border-color:var(--orange);font-weight:600;}
+.f-btn:not(.active):hover{border-color:var(--border-hi);color:var(--text);}
+
+/* ── Title blocks ── */
+.t-block{border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden;}
+.t-head{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 17px;background:var(--bg-2);border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap;}
+.t-info .t-name{font-size:0.86rem;font-weight:600;}
+.t-info .t-channel{font-size:0.7rem;color:var(--text-muted);margin-top:1px;}
+.t-info .t-matched{font-size:0.67rem;color:var(--text-dim);margin-top:2px;font-style:italic;}
+.t-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.t-mtv-lbl{font-size:0.63rem;color:var(--text-dim);text-align:right;}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:3px;font-size:0.63rem;font-weight:700;letter-spacing:0.04em;white-space:nowrap;}
+.b-red  {background:var(--red-dim);  color:var(--red);  border:1px solid var(--red-bdr);}
+.b-green{background:var(--green-dim);color:var(--green);border:1px solid var(--green-bdr);}
+.b-amber{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-bdr);}
+.b-muted{background:var(--bg-3);     color:var(--text-muted);border:1px solid var(--border);}
+
+/* ── Territory grid ── */
+.t-body{padding:15px 17px;}
+.terr-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:11px;}
+@media(max-width:600px){.terr-grid{grid-template-columns:1fr;}}
+.tg-lbl{font-size:0.6rem;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
+.tg-tags{display:flex;flex-wrap:wrap;gap:3px;}
+.tag{padding:2px 6px;border-radius:3px;font-size:0.7rem;font-weight:500;font-family:'Courier New',monospace;}
+.tag-cur {background:rgba(237,232,223,0.07);color:var(--text);}
+.tag-rem {background:var(--red-dim);color:var(--red);text-decoration:line-through;}
+.tag-keep{background:var(--green-dim);color:var(--green);}
+.tag-comp{background:var(--amber-dim);color:var(--amber);}
+.tag-none{color:var(--text-dim);font-size:0.7rem;font-style:italic;}
+
+/* ── Action block ── */
+.act-block{padding:8px 12px;border-radius:4px;font-size:0.76rem;border-left:2px solid;line-height:1.5;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.act-do  {border-color:var(--red);  background:var(--red-dim);  color:var(--text);}
+.act-ok  {border-color:var(--green);background:var(--green-dim);color:var(--green);}
+.act-warn{border-color:var(--amber);background:var(--amber-dim);color:var(--amber);}
+.act-gone{border-color:var(--red);  background:var(--red-dim);  color:var(--red);}
+.copy-btn{background:none;border:1px solid currentColor;opacity:0.55;padding:2px 7px;border-radius:3px;font-size:0.66rem;cursor:pointer;color:inherit;font-family:inherit;white-space:nowrap;flex-shrink:0;}
+.copy-btn:hover{opacity:1;}
+
+/* ── Supplemental ── */
+.t-supp{margin-top:7px;font-size:0.66rem;color:var(--text-dim);line-height:1.65;}
+.t-supp .hi{color:var(--orange);font-family:'Courier New',monospace;}
+
+/* ── Not found ── */
+.not-found-body{padding:14px 17px;font-size:0.78rem;color:var(--text-muted);line-height:1.6;}
+.no-results{text-align:center;padding:44px;color:var(--text-dim);font-size:0.84rem;}
+
+/* ── Match table pagination ── */
+.match-pager{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-2);border-top:1px solid var(--border);font-size:0.72rem;color:var(--text-muted);}
+.match-pager button{padding:4px 12px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--text-muted);font-size:0.7rem;font-family:inherit;cursor:pointer;}
+.match-pager button:hover{border-color:var(--orange);color:var(--orange);}
+.match-pager button:disabled{opacity:0.3;cursor:default;}
+
+@media print{
+  .site-header,.page-intro,.flow,.step,.gen-wrap{display:none;}
+  .report-card{border:none;}
+  body{background:white;color:black;}
+  .t-block{break-inside:avoid;}
+}
+
 </style>
 </head>
 <body>
+
+<!-- ══════════════ TOP NAVIGATION ══════════════ -->
+<nav class="top-nav">
+  <div class="top-nav-brand">
+    <svg width="20" height="13" viewBox="0 0 44 30" fill="none" aria-hidden="true">
+      <path d="M22 1L43 15L22 29L1 15L22 1Z" stroke="#EDE8DF" stroke-width="2" fill="none"/>
+      <path d="M10 15L22 8L34 15L22 22L10 15Z" fill="#EDE8DF"/>
+    </svg>
+    <span class="top-nav-logo-text">Filmhub</span>
+    <span class="top-nav-pipe">|</span>
+    <span class="top-nav-suite">Stash TV Tools</span>
+  </div>
+  <div class="top-nav-tabs">
+    <button class="top-tab active" data-tab="sched" onclick="switchToolTab('sched')">📅 Scheduler</button>
+    <button class="top-tab" data-tab="terr" onclick="switchToolTab('terr')">🗺 Territory Audit</button>
+  </div>
+</nav>
+
+<!-- ══════════════ TAB 1: SCHEDULER ══════════════ -->
+<div id="tab-sched" class="tool-panel active">
 
 <!-- ══════════════ UPLOAD SCREEN ══════════════ -->
 <div id="upload-screen">
@@ -653,7 +989,222 @@ table.cal tbody td.open-col {
   </div>
 </div>
 
+
+</div>
+
+<!-- ══════════════ TAB 2: TERRITORY AUDIT ══════════════ -->
+<div id="tab-terr" class="tool-panel tab-terr">
+
+<!-- Header -->
+<header class="site-header">
+  <div class="logo-lockup">
+    <svg width="21" height="14" viewBox="0 0 44 30" fill="none"><path d="M22 1L43 15L22 29L1 15L22 1Z" stroke="#EDE8DF" stroke-width="2" fill="none"/><path d="M10 15L22 8L34 15L22 22L10 15Z" fill="#EDE8DF"/></svg>
+    <span class="logo-wordmark">Filmhub</span>
+  </div>
+  <span class="hdr-pipe">|</span>
+  <span class="hdr-tool">YouTube Territory Manager</span>
+</header>
+
+<div class="page">
+
+  <div class="page-intro">
+    <h1>Territory<br><em>conflict</em> resolver</h1>
+    <p>Cross-reference your M&TV licensing data, YouTube CMS Stash territories, and Filmhub avail rights to generate a precise CMS action list.</p>
+  </div>
+
+  <div class="flow">
+    <div class="flow-node on"><div class="fn-lbl">Step 1</div><div class="fn-name">M&TV Licensing</div></div>
+    <div class="flow-arrow">+</div>
+    <div class="flow-node on"><div class="fn-lbl">Step 2</div><div class="fn-name">YouTube CMS Export</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node on"><div class="fn-lbl">Step 2b</div><div class="fn-name">Title Matching</div></div>
+    <div class="flow-arrow">+</div>
+    <div class="flow-node"><div class="fn-lbl">Step 3 · Optional</div><div class="fn-name">Filmhub Avail</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node on"><div class="fn-lbl">Output</div><div class="fn-name">CMS Action Report</div></div>
+  </div>
+
+  <!-- Step 1: M&TV -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div class="step-head-text">
+        <h3>Movies &amp; TV Licensing Data</h3>
+        <p>PopSQL export — territories YouTube Movies &amp; TV has selected per title (<code style="font-size:0.7rem;color:var(--orange)">yt_countries</code> column)</p>
+      </div>
+      <span id="mtvLoadedBadge" style="display:none" class="step-loaded-num"></span>
+    </div>
+    <div class="step-body">
+      <div id="mtvUploadArea">
+        <div class="upload-zone" id="mtvDrop">
+          <input type="file" id="mtvFile" accept=".csv">
+          <div class="uz-icon">🎬</div>
+          <p class="uz-lbl"><span>Click to upload</span> or drag &amp; drop</p>
+          <p class="uz-hint">Expected columns: id, name, stash_channel, yt_countries, yt_start_date, yt_end_date</p>
+        </div>
+      </div>
+      <div id="mtvLoaded" style="display:none"></div>
+      <div id="mtvPreview"></div>
+    </div>
+  </div>
+
+  <!-- Step 2: YouTube CMS -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num">2</div>
+      <div class="step-head-text">
+        <h3>YouTube CMS — Stash Channel Asset Export</h3>
+        <p>Asset-level export from YouTube CMS — source of truth for current territory assignments on the Stash suite</p>
+      </div>
+      <span id="cmsLoadedBadge" style="display:none" class="step-loaded-num"></span>
+    </div>
+    <div class="step-body">
+      <div class="info-note">Export your assets from the Stash channel suite in YouTube Studio / CMS. Include asset title and current territory or ownership policy. Column names will be auto-detected — if ambiguous you'll be prompted to map them manually.</div>
+      <div id="cmsUploadArea">
+        <div class="upload-zone" id="cmsDrop">
+          <input type="file" id="cmsFile" accept=".csv">
+          <div class="uz-icon">📺</div>
+          <p class="uz-lbl"><span>Click to upload</span> or drag &amp; drop</p>
+          <p class="uz-hint">Typical columns: Asset Title / Name, Countries / Territories / Ownership</p>
+        </div>
+      </div>
+      <div id="cmsLoaded" style="display:none"></div>
+      <div id="cmsMapper" class="col-mapper" style="display:none">
+        <p>⚠ Couldn't auto-detect columns — map them manually:</p>
+        <div class="cmap-row">
+          <label>Title column</label><select id="cmsTitleCol"></select>
+          <label>Territories column</label><select id="cmsTerritoryCol"></select>
+          <button class="btn btn-orange btn-sm" onclick="applyCmsMap()">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2b: Match Review (dynamic) -->
+  <div id="matchReview" class="step">
+    <div class="step-head">
+      <div class="step-num" style="background:var(--blue);color:#0F0F0D;">↔</div>
+      <div class="step-head-text">
+        <h3>Title Match Review</h3>
+        <p>CMS titles often include SEO additions — review the auto-matched pairs and correct any uncertain ones before generating the report</p>
+      </div>
+      <span id="matchBadge" class="step-loaded-num" style="display:none"></span>
+    </div>
+    <div class="step-body">
+      <p class="match-intro">Titles are matched by stripping common SEO suffixes and comparing words. <strong style="color:var(--green)">Strong</strong> matches are auto-accepted. <strong style="color:var(--amber)">Likely</strong> and <strong style="color:var(--red)">Uncertain</strong> matches are flagged — use the search box to correct them. Changes here will carry through to the report.</p>
+      <div id="matchProgressWrap" style="display:none;margin-bottom:14px;">
+        <div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:6px;" id="matchProgressText">Matching titles…</div>
+        <div style="height:4px;background:var(--bg-2);border-radius:2px;overflow:hidden;">
+          <div id="matchProgressBar" style="height:100%;background:var(--orange);width:0%;transition:width 0.2s;"></div>
+        </div>
+      </div>
+      <div class="match-summary" id="matchSummary"></div>
+      <div class="match-table-wrap">
+        <table class="match-table">
+          <thead><tr><th>M&TV Title</th><th></th><th>Matched CMS Title</th><th>Confidence</th><th>Override</th></tr></thead>
+          <tbody id="matchTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Filmhub Avail -->
+  <div class="step">
+    <div class="step-head">
+      <div class="step-num opt">3</div>
+      <div class="step-head-text">
+        <h3>Filmhub Avail Data</h3>
+        <p>PopSQL export — available territories per title in the Filmhub platform</p>
+      </div>
+      <span class="step-opt">Optional</span>
+      <span id="fhLoadedBadge" style="display:none" class="step-loaded-num"></span>
+    </div>
+    <div class="step-body">
+      <div id="fhUploadArea">
+        <div class="upload-zone" id="fhDrop">
+          <input type="file" id="fhFile" accept=".csv">
+          <div class="uz-icon">🗺</div>
+          <p class="uz-lbl"><span>Click to upload</span> or drag &amp; drop</p>
+          <p class="uz-hint">Used for compliance checking — flags Stash territories outside your Filmhub licensed rights</p>
+        </div>
+      </div>
+      <div id="fhLoaded" style="display:none"></div>
+      <div id="fhMapper" class="col-mapper" style="display:none">
+        <p>⚠ Select the column containing available territories:</p>
+        <div class="cmap-row">
+          <label>Territory column</label><select id="fhTerritoryCol"></select>
+          <button class="btn btn-orange btn-sm" onclick="applyFhMap()">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate -->
+  <div class="step" style="background:var(--bg-2);">
+    <div class="gen-wrap">
+      <button class="btn-gen" id="genBtn" onclick="generate()">Generate Report</button>
+      <p class="gen-hint">Requires Steps 1 and 2 · Review title matches in Step 2b · Step 3 enables compliance checking</p>
+      <div class="gen-progress" id="genProgress">
+        <div class="gen-progress-text" id="genProgressText">Building report…</div>
+        <div class="gen-progress-track"><div class="gen-progress-fill" id="genProgressFill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report -->
+  <div id="reportSection">
+    <div class="report-card">
+      <div class="report-head">
+        <div>
+          <h2>Territory Conflict Report</h2>
+          <p class="report-meta" id="reportMeta"></p>
+        </div>
+        <div class="rpt-actions">
+          <span class="exp-lbl">Export</span>
+          <button class="btn btn-ghost btn-sm" onclick="exportCSV()">↓ CSV</button>
+          <button class="btn btn-ghost btn-sm" onclick="window.print()">Print</button>
+        </div>
+      </div>
+      <div class="report-body">
+        <div class="stats" id="statsRow"></div>
+        <div class="filter-bar">
+          <button class="f-btn active" onclick="setFilter('all',this)">All</button>
+          <button class="f-btn" onclick="setFilter('action',this)">Action Required</button>
+          <button class="f-btn" onclick="setFilter('clear',this)">No Overlap</button>
+          <button class="f-btn" onclick="setFilter('compliance',this)">Compliance Issues</button>
+          <button class="f-btn" onclick="setFilter('not_found',this)">Not Matched</button>
+        </div>
+        <div id="reportContent"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <script>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  TAB SWITCHING
+// ════════════════════════════════════════════════
+function switchToolTab(tab) {
+  document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.top-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('tab-' + tab).classList.add('active');
+  try { localStorage.setItem('stash-active-tab', tab); } catch(e) {}
+}
+
+// Restore last active tab on page load
+try {
+  const saved = localStorage.getItem('stash-active-tab');
+  if (saved === 'terr') switchToolTab('terr');
+} catch(e) {}
+
+// ════════════════════════════════════════════════
+//  SCHEDULER — JavaScript
+// ════════════════════════════════════════════════
 // ═══════════════════════════════════════════════
 //  CONSTANTS
 // ═══════════════════════════════════════════════
@@ -1920,8 +2471,7 @@ function exportSnapshot() {
   appEl.style.display    = prevApp;
 
   // Build the auto-load snapshot script
-  const snapshotScript = `\n<script>
-(function(){
+  const snapshotScript = `\n(function(){
   var raw = ${rawData};
   APP.items    = raw.items.map(function(i){ return Object.assign({},i,{publishDate:i.publishDate?new Date(i.publishDate):null,createdDate:i.createdDate?new Date(i.createdDate):null,uploadDate:i.uploadDate?new Date(i.uploadDate):null}); });
   APP.channels = raw.channels;
@@ -2087,6 +2637,725 @@ function loadDemo() {
     // No cloud data — upload screen is already visible, nothing else to do
   }
 })();
+
+// ════════════════════════════════════════════════
+//  TERRITORY AUDIT — JavaScript
+// ════════════════════════════════════════════════
+// ── State ──────────────────────────────────────────────────────────────
+let mtvData   = {};  // { id: { id, name, channel, windows:[{start,end,territories[]}] } }
+let cmsData   = {};  // { key: { id, name, channel, territories[] } }
+let fhData    = {};  // { id: { id, name, territories[] } }
+let cmsRaw    = [];
+let fhRaw     = [];
+let matches   = {};  // { mtvId: { cmsEntry, score, manual } }  — confirmed matches
+let report    = [];
+let cmsList   = [];  // flat sorted list of CMS entries for autocomplete
+let cmsIdIdx  = new Map(); // id_pattern (no dashes) → cmsEntry  for O(1) ID lookup
+let cmsWordIdx= new Map(); // word → Set<cmsEntry>  for fast candidate filtering
+let activeFilter = 'all';
+let matchTablePage = 0;    // pagination for match review table
+const MATCH_PAGE_SIZE = 150;
+let reportPage = 0;
+const REPORT_PAGE_SIZE = 50;
+
+// ── CSV Parser ─────────────────────────────────────────────────────────
+function parseCSVTA(text) {
+  const rows=[]; let inQ=false,field='',row=[];
+  for (let i=0;i<text.length;i++) {
+    const c=text[i],n=text[i+1];
+    if(c==='"'){if(inQ&&n==='"'){field+='"';i++;}else inQ=!inQ;}
+    else if(c===','&&!inQ){row.push(field);field='';}
+    else if((c==='\n'||c==='\r')&&!inQ){
+      if(c==='\r'&&n==='\n')i++;
+      row.push(field);field='';
+      if(row.some(f=>f.trim()))rows.push(row);row=[];
+    }else field+=c;
+  }
+  row.push(field);if(row.some(f=>f.trim()))rows.push(row);
+  if(!rows.length)return[];
+  const headers=rows[0].map(h=>h.trim().toLowerCase().replace(/[\s\-\/\\]+/g,'_'));
+  return rows.slice(1).map(r=>{const o={};headers.forEach((h,i)=>o[h]=(r[i]||'').trim());return o;});
+}
+
+function parseTerritories(str) {
+  if(!str)return[];
+  let s=str.replace(/^["'{\s]+/,'').replace(/["'}\s]+$/,'').trim();
+  if(!s)return[];
+  const sep=s.includes(',')? ',':s.includes(';')?';':' ';
+  return s.split(sep).map(x=>x.trim().replace(/["'{}]/g,'').toUpperCase()).filter(x=>/^[A-Z]{2,3}$/.test(x));
+}
+
+// ── Fuzzy Title Matching ───────────────────────────────────────────────
+const SEO_STRIP = /\s*[|—–:]\s*.+$/;         // strip after pipe/dash/colon
+const PARENS    = /\s*\([\s\S]*?\)\s*/g;      // remove (anything)
+const BRACKETS  = /\s*\[[\s\S]*?\]\s*/g;      // remove [anything]
+const SEO_WORDS = /\b(full\s*movie|free\s*movie|free|watch\s*(online|free)?|hd|4k|1080p|720p|official|trailer|english|subtitle[s]?|dubbed|streaming|on\s*youtube)\b/gi;
+const STOPWORDS = new Set(['the','a','an','and','or','of','in','to','is','it','for','on','at','by','as','with','from']);
+
+function normTitle(s) {
+  return s
+    .replace(SEO_STRIP,'')
+    .replace(PARENS,' ').replace(BRACKETS,' ')
+    .replace(SEO_WORDS,' ')
+    .toLowerCase()
+    .replace(/[^\w\s]/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+
+function titleWords(s) {
+  return normTitle(s).split(' ').filter(w=>w.length>1&&!STOPWORDS.has(w));
+}
+
+function cleanSimple(s) {
+  // Light normalisation: lowercase, strip punctuation, collapse spaces
+  return s.toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function matchScore(mtvName, cmsName, mtvId) {
+  // ── 1. ID-embedded check ───────────────────────────────────────────────
+  // CMS episode_title format: "{id_no_dashes} {title_lower} main"
+  // e.g. Filmhub ID "cfpg-n8ry" → CMS title starts with "cfpg n8ry "
+  if(mtvId) {
+    const idPat=mtvId.replace(/-/g,' ').toLowerCase();
+    const ncL=cmsName.toLowerCase();
+    if(ncL.startsWith(idPat+' ')||ncL===idPat) return 1.0;
+  }
+
+  // ── 2. Full-string segment scan ────────────────────────────────────────
+  // Splits the CMS episode_title on | — | – and searches EVERY segment
+  // for the M&TV title. This catches titles in any position, including
+  // series entries like "Episode Name | Series Title | S01E01 | Full Episode"
+  const mtvC = cleanSimple(mtvName);
+  if(mtvC.length >= 3) {
+    const segs = cmsName.split(/[|—–]/).map(s=>cleanSimple(s)).filter(s=>s.length>1);
+    for(const seg of segs) {
+      if(seg === mtvC)                           return 1.0;  // exact segment
+      if(seg.includes(mtvC) && mtvC.length>=5)  return 0.97; // M&TV title inside segment
+      if(mtvC.includes(seg) && seg.length>=8)   return 0.90; // segment inside M&TV title
+    }
+  }
+
+  // ── 3. Normalised fuzzy matching (existing logic) ──────────────────────
+  const nm = normTitle(mtvName);
+  const nc = normTitle(cmsName);
+  if(!nm||!nc) return 0;
+  // Exact normalized
+  if(nm===nc) return 1.0;
+  // Containment (CMS title starts with or contains the M&TV title)
+  if(nc.startsWith(nm)&&nm.length>=5) return 0.97;
+  if(nc.includes(nm)&&nm.length>=5)   return 0.93;
+  if(nm.includes(nc)&&nc.length>=5)   return 0.88;
+  // Word-level Jaccard
+  const wm = new Set(titleWords(mtvName));
+  const wc = new Set(titleWords(cmsName));
+  if(!wm.size||!wc.size) return 0;
+  const inter = [...wm].filter(w=>wc.has(w)).length;
+  const union  = new Set([...wm,...wc]).size;
+  const jacc   = inter/union;
+  // Prefix bonus (first words match)
+  const prefM = titleWords(mtvName).slice(0,3).join(' ');
+  const prefC = titleWords(cmsName).slice(0,3).join(' ');
+  const prefBonus = (prefM===prefC && prefM.length>=4) ? 0.15 : 0;
+  return Math.min(0.99, jacc + prefBonus);
+}
+
+function confLabel(score, manual) {
+  if(manual)   return {cls:'conf-manual',   text:'MANUAL'};
+  if(score>=0.90) return {cls:'conf-strong',   text:'STRONG'};
+  if(score>=0.70) return {cls:'conf-likely',   text:'LIKELY'};
+  if(score>=0.45) return {cls:'conf-uncertain',text:'UNCERTAIN'};
+  return              {cls:'conf-none',     text:'NO MATCH'};
+}
+
+// ── Load M&TV ──────────────────────────────────────────────────────────
+function loadMtv(text) {
+  const rows=parseCSVTA(text);
+  if(!rows.length){alert('Could not parse CSV.');return;}
+  mtvData={};
+  let skippedRemoved=0;
+  rows.forEach(r=>{
+    // Skip rows where the license was removed (Metabase export includes these)
+    const status=(r['license_status']||r['status']||'').toLowerCase();
+    if(status==='removed'){skippedRemoved++;return;}
+
+    // Column name fallbacks: supports both old PopSQL format and new Metabase format
+    const id  =r['title_id']  ||r['id']||r['filmhub_id'];
+    const name=r['title_name']||r['name']||r['title']||'';
+    const ch  =r['stash_channel']||r['channel']||'';
+    const terr=parseTerritories(
+      r['licensed_countries']||r['yt_countries']||r['countries']||r['territories']||''
+    );
+    const s   =r['license_start_date']||r['yt_start_date']||r['start_date']||'';
+    const e   =r['license_end_date']  ||r['yt_end_date']  ||r['end_date']  ||'';
+    if(!id)return;
+    if(!mtvData[id])mtvData[id]={id,name,channel:ch,windows:[]};
+    // Accumulate all territory windows — deduplication happens at report time via Set
+    if(terr.length)mtvData[id].windows.push({start:s,end:e,territories:terr});
+  });
+  const n=Object.keys(mtvData).length;
+  const removedNote=skippedRemoved?` · ${skippedRemoved} removed licenses skipped`:'';
+  showLoaded('mtv',`${n} title${n!==1?'s':''} loaded${removedNote}`);
+  document.getElementById('mtvLoadedBadge').style.display='';
+  document.getElementById('mtvLoadedBadge').textContent=`${n} titles`;
+  // Preview — show territory column highlighted
+  const cols=Object.keys(rows[0]).slice(0,6);
+  const terrKey=Object.keys(rows[0]).find(c=>/countr|territ|licensed/.test(c))||'';
+  document.getElementById('mtvPreview').innerHTML=`
+    <div class="preview-wrap"><table class="preview-table">
+      <thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.slice(0,3).map(r=>`<tr>${cols.map(c=>`<td ${c===terrKey?'class="hi"':''}>${esc(r[c]||'')}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>
+    <p class="preview-more">Showing 3 of ${rows.length} rows · ${n} unique titles${skippedRemoved?` · <span style="color:var(--amber)">${skippedRemoved} rows with status "removed" excluded</span>`:''}</p>`;
+  maybeRunMatching();
+}
+
+// ── Load CMS ───────────────────────────────────────────────────────────
+function loadCms(text) {
+  const rows=parseCSVTA(text);
+  if(!rows.length){alert('Could not parse CSV.');return;}
+  cmsRaw=rows;
+  const cols=Object.keys(rows[0]);
+  // Priority-ordered detection — most specific first to avoid wrong picks
+  const titlePri=['episode_title','video_title','title','asset_label','name'];
+  const terrPri =['ownership','territories','territory','countries','country'];
+  const titleCol=titlePri.find(p=>cols.includes(p))||cols.find(c=>/title|name/.test(c)&&!/asset_id|asset_type/.test(c));
+  const terrCol =terrPri.find(p=>cols.includes(p))||cols.find(c=>/owner|countr|territ/.test(c)&&!/policy/.test(c));
+  if(titleCol&&terrCol){
+    finalizeCms(rows,titleCol,terrCol);
+  } else {
+    const m=document.getElementById('cmsMapper');m.style.display='block';
+    const fill=(id,pref)=>{document.getElementById(id).innerHTML=cols.map(c=>`<option value="${c}"${c===pref?' selected':''}>${esc(c)}</option>`).join('');};
+    fill('cmsTitleCol',titleCol||cols[0]);fill('cmsTerritoryCol',terrCol||cols[0]);
+  }
+}
+
+function finalizeCms(rows,titleCol,terrCol) {
+  cmsData={};
+  rows.forEach(r=>{
+    const name=(r[titleCol]||'').trim();if(!name||name==='Auto generated asset')return;
+    const terr=parseTerritories(r[terrCol]||'');
+    const ch=r['channel']||r['cms']||r['stash_channel']||'';
+    if(!cmsData[name]){cmsData[name]={id:name,name,channel:ch,territories:[]};}
+    cmsData[name].territories=[...new Set([...cmsData[name].territories,...terr])];
+  });
+  cmsList=Object.values(cmsData).sort((a,b)=>a.name.localeCompare(b.name));
+
+  // ── Build lookup indexes for fast matching ─────────────────────────────
+  // ID index: "xxxx xxxx" (no-dash Filmhub ID) → cmsEntry
+  cmsIdIdx=new Map();
+  // Word index: word → Set<cmsEntry>  indexes ALL pipe segments, not just first
+  cmsWordIdx=new Map();
+  cmsList.forEach(cms=>{
+    // ID pattern: starts with 4-char + space + 4-char at the beginning
+    const idM=cms.name.match(/^([a-z0-9]{4}) ([a-z0-9]{4})\s/i);
+    if(idM) cmsIdIdx.set((idM[1]+' '+idM[2]).toLowerCase(), cms);
+    // Word index — join all pipe segments so later-segment words are indexed
+    const allSegText=cms.name.split(/[|—–]/).join(' ');
+    titleWords(allSegText).forEach(w=>{
+      if(!cmsWordIdx.has(w)) cmsWordIdx.set(w, new Set());
+      cmsWordIdx.get(w).add(cms);
+    });
+  });
+
+  document.getElementById('cmsMapper').style.display='none';
+  const n=cmsList.length;
+  showLoaded('cms',`${n} asset${n!==1?'s':''} loaded`);
+  document.getElementById('cmsLoadedBadge').style.display='';
+  document.getElementById('cmsLoadedBadge').textContent=`${n} assets`;
+  maybeRunMatching();
+}
+
+function applyCmsMap(){finalizeCms(cmsRaw,document.getElementById('cmsTitleCol').value,document.getElementById('cmsTerritoryCol').value);}
+
+// ── Load Filmhub Avail ─────────────────────────────────────────────────
+function loadFh(text) {
+  const rows=parseCSVTA(text);if(!rows.length)return;
+  fhRaw=rows;
+  const cols=Object.keys(rows[0]);
+  const fhTerrPri=['available_countries','territories','territory','countries','country'];
+  const tc=fhTerrPri.find(p=>cols.includes(p))||cols.find(c=>/avail|territ|countr/.test(c));
+  if(tc){finalizeFh(rows,tc);return;}
+  document.getElementById('fhMapper').style.display='block';
+  document.getElementById('fhTerritoryCol').innerHTML=cols.map(c=>`<option value="${c}">${esc(c)}</option>`).join('');
+}
+
+function finalizeFh(rows,terrCol) {
+  fhData={};
+  rows.forEach(r=>{
+    const id=r['id']||r['filmhub_id']||r['title_id'];if(!id)return;
+    const name=r['name']||r['title']||'';
+    const terr=parseTerritories(r[terrCol]||'');
+    if(!fhData[id])fhData[id]={id,name,territories:[]};
+    fhData[id].territories=[...new Set([...fhData[id].territories,...terr])];
+  });
+  document.getElementById('fhMapper').style.display='none';
+  const n=Object.keys(fhData).length;
+  showLoaded('fh',`${n} title${n!==1?'s':''} loaded`);
+  document.getElementById('fhLoadedBadge').style.display='';
+  document.getElementById('fhLoadedBadge').textContent=`${n} titles`;
+}
+
+function applyFhMap(){finalizeFh(fhRaw,document.getElementById('fhTerritoryCol').value);}
+
+// ── Matching Logic ─────────────────────────────────────────────────────
+function maybeRunMatching() {
+  if(!Object.keys(mtvData).length||!cmsList.length) return;
+  document.getElementById('matchReview').style.display='block';
+  runMatching(); // async — shows progress, then renders table
+}
+
+async function runMatching() {
+  const mtvEntries=Object.values(mtvData);
+  const total=mtvEntries.length;
+  const BATCH=80; // titles per frame — keeps each frame under ~16ms
+
+  // Show progress bar
+  const pw=document.getElementById('matchProgressWrap');
+  const pb=document.getElementById('matchProgressBar');
+  const pt=document.getElementById('matchProgressText');
+  if(pw) pw.style.display='block';
+
+  // Clear previous auto-matches but preserve manual overrides
+  Object.keys(matches).forEach(id=>{ if(!matches[id].manual) delete matches[id]; });
+
+  for(let i=0;i<total;i+=BATCH){
+    const batch=mtvEntries.slice(i,Math.min(i+BATCH,total));
+    batch.forEach(mtv=>{
+      if(matches[mtv.id]?.manual) return; // keep manual overrides
+
+      // ── 1. O(1) ID index lookup ──────────────────────────────────────
+      const idPat=mtv.id.replace(/-/g,' ').toLowerCase();
+      const idHit=cmsIdIdx.get(idPat);
+      if(idHit){matches[mtv.id]={cmsEntry:idHit,score:1.0,manual:false};return;}
+
+      // ── 2. Word-index candidate filter (avoids O(n) full scan) ──────
+      const words=titleWords(mtv.name);
+      let candidates;
+      if(words.length){
+        const cands=new Set();
+        words.forEach(w=>(cmsWordIdx.get(w)||new Set()).forEach(c=>cands.add(c)));
+        // Fall back to full list only if no word hits at all
+        candidates=cands.size>0?[...cands]:cmsList;
+      } else {
+        candidates=cmsList;
+      }
+
+      // ── 3. Score candidates only ─────────────────────────────────────
+      let best=null,bestScore=0;
+      candidates.forEach(cms=>{
+        const s=matchScore(mtv.name,cms.name,mtv.id);
+        if(s>bestScore){bestScore=s;best=cms;}
+      });
+      matches[mtv.id]={cmsEntry:bestScore>=0.45?best:null,score:bestScore,manual:false};
+    });
+
+    // Update progress and yield to browser between batches
+    const done=Math.min(i+BATCH,total);
+    const pct=Math.round(done/total*100);
+    if(pb) pb.style.width=pct+'%';
+    if(pt) pt.textContent=`Matching titles… ${done.toLocaleString()} / ${total.toLocaleString()}`;
+    await new Promise(r=>setTimeout(r,0));
+  }
+
+  // Hide progress, show table
+  if(pw) pw.style.display='none';
+  matchTablePage=0;
+  renderMatchTable();
+  document.getElementById('matchReview').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function renderMatchRow(mtv) {
+  const m=matches[mtv.id]||{};
+  const {cls,text}=confLabel(m.score||0,m.manual);
+  const cmsName=m.cmsEntry?.name||'';
+  return `<tr>
+    <td class="mt-mtv">${esc(mtv.name)}</td>
+    <td class="mt-arrow">→</td>
+    <td class="mt-cms ${cmsName?'matched':'no-match'}">${cmsName?esc(cmsName):'no match found'}</td>
+    <td class="mt-conf"><span class="conf ${cls}" id="conf-${esc(mtv.id)}">${text}</span></td>
+    <td class="mt-action">
+      <div class="ac-wrap" data-mtvid="${esc(mtv.id)}">
+        <input type="text" class="ac-input${m.manual?' has-manual':''}" value="${esc(cmsName)}"
+          placeholder="— type to search —"
+          oninput="acSearch(this)" onfocus="acSearch(this)" onblur="acBlur(this)">
+        <div class="ac-dropdown"></div>
+      </div>
+    </td>
+  </tr>`;
+}
+
+function renderMatchTable() {
+  const mtvEntries=Object.values(mtvData);
+  const total=mtvEntries.length;
+  const counts={strong:0,likely:0,uncertain:0,none:0};
+  mtvEntries.forEach(m=>{
+    const match=matches[m.id];const s=match?.score||0;const manual=match?.manual;
+    if(manual){counts.strong++;}else if(s>=0.90)counts.strong++;else if(s>=0.70)counts.likely++;else if(s>=0.45)counts.uncertain++;else counts.none++;
+  });
+
+  document.getElementById('matchSummary').innerHTML=`
+    <span class="ms-chip ms-strong">✓ ${counts.strong} strong match${counts.strong!==1?'es':''}</span>
+    ${counts.likely?`<span class="ms-chip ms-likely">~ ${counts.likely} likely</span>`:''}
+    ${counts.uncertain?`<span class="ms-chip ms-uncertain">? ${counts.uncertain} uncertain</span>`:''}
+    ${counts.none?`<span class="ms-chip ms-none">✗ ${counts.none} unmatched</span>`:''}`;
+
+  document.getElementById('matchBadge').style.display='';
+  const issues=counts.likely+counts.uncertain+counts.none;
+  document.getElementById('matchBadge').textContent=issues?`${issues} need review`:'All matched';
+  document.getElementById('matchBadge').style.background=issues?'var(--amber-dim)':'var(--green-dim)';
+  document.getElementById('matchBadge').style.color=issues?'var(--amber)':'var(--green)';
+  document.getElementById('matchBadge').style.borderColor=issues?'var(--amber-bdr)':'var(--green-bdr)';
+
+  // Paginate — render MATCH_PAGE_SIZE rows at a time to keep DOM fast
+  const start=matchTablePage*MATCH_PAGE_SIZE;
+  const end=Math.min(start+MATCH_PAGE_SIZE,total);
+  const pageEntries=mtvEntries.slice(start,end);
+
+  document.getElementById('matchTableBody').innerHTML=pageEntries.map(renderMatchRow).join('');
+
+  // Pager row (appended outside the table)
+  const wrap=document.querySelector('.match-table-wrap');
+  let pager=document.getElementById('matchPager');
+  if(!pager){pager=document.createElement('div');pager.id='matchPager';pager.className='match-pager';wrap.after(pager);}
+  const pages=Math.ceil(total/MATCH_PAGE_SIZE);
+  if(pages<=1){pager.style.display='none';}else{
+    pager.style.display='flex';
+    pager.innerHTML=`
+      <button onclick="setMatchPage(${matchTablePage-1})" ${matchTablePage===0?'disabled':''}>← Prev</button>
+      <span>Page ${matchTablePage+1} of ${pages} &nbsp;·&nbsp; showing ${start+1}–${end} of ${total.toLocaleString()} titles</span>
+      <button onclick="setMatchPage(${matchTablePage+1})" ${matchTablePage>=pages-1?'disabled':''}>Next →</button>`;
+  }
+}
+
+function setMatchPage(p) {
+  matchTablePage=p;
+  renderMatchTable();
+  document.querySelector('.match-table-wrap').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ── Autocomplete for match override ──────────────────────────────────────
+function acSearch(input) {
+  const wrap=input.closest('.ac-wrap');
+  const dd=wrap.querySelector('.ac-dropdown');
+  const q=input.value.trim().toLowerCase();
+  const mtvId=wrap.dataset.mtvid;
+  let results=[];
+  if(q.length>=1){
+    const qn=normTitle(q);
+    results=cmsList.filter(c=>c.name.toLowerCase().includes(q)||normTitle(c.name).includes(qn)).slice(0,15);
+  }
+  let html=`<div class="ac-item ac-clear" onmousedown="acClear(event,${JSON.stringify(mtvId)})">↺ Auto-match</div>`;
+  html+=results.map(c=>`<div class="ac-item" onmousedown="acSelect(event,${JSON.stringify(mtvId)},${JSON.stringify(c.name)})">${esc(c.name)}</div>`).join('');
+  dd.innerHTML=html;
+  dd.style.display='block';
+}
+
+function acBlur(input) {
+  setTimeout(()=>{
+    const wrap=input.closest('.ac-wrap');
+    if(wrap) wrap.querySelector('.ac-dropdown').style.display='none';
+  },200);
+}
+
+function acSelect(e, mtvId, cmsName) {
+  e.preventDefault();
+  const entry=cmsData[cmsName]||cmsList.find(c=>c.name===cmsName);
+  matches[mtvId]={cmsEntry:entry||null,score:1,manual:true};
+  const wrap=document.querySelector(`.ac-wrap[data-mtvid="${CSS.escape(mtvId)}"]`);
+  if(wrap){
+    wrap.querySelector('.ac-input').value=cmsName;
+    wrap.querySelector('.ac-input').className='ac-input has-manual';
+    wrap.querySelector('.ac-dropdown').style.display='none';
+    // Update the matched-CMS cell in same row
+    const row=wrap.closest('tr');
+    if(row){const td=row.querySelector('.mt-cms');if(td){td.textContent=cmsName;td.className='mt-cms matched';}}
+  }
+  const badge=document.getElementById('conf-'+mtvId);
+  if(badge){badge.className='conf conf-manual';badge.textContent='MANUAL';}
+  _refreshMatchSummary();
+}
+
+function acClear(e, mtvId) {
+  e.preventDefault();
+  let best=null,bestScore=0;
+  cmsList.forEach(cms=>{
+    const s=matchScore(mtvData[mtvId]?.name||'',cms.name,mtvId);
+    if(s>bestScore){bestScore=s;best=cms;}
+  });
+  matches[mtvId]={cmsEntry:bestScore>=0.45?best:null,score:bestScore,manual:false};
+  const wrap=document.querySelector(`.ac-wrap[data-mtvid="${CSS.escape(mtvId)}"]`);
+  if(wrap){
+    wrap.querySelector('.ac-input').value=best?.name||'';
+    wrap.querySelector('.ac-input').className='ac-input';
+    wrap.querySelector('.ac-dropdown').style.display='none';
+    const row=wrap.closest('tr');
+    if(row){const td=row.querySelector('.mt-cms');if(td){td.textContent=best?.name||'no match found';td.className='mt-cms '+(best?'matched':'no-match');}}
+  }
+  const {cls,text}=confLabel(bestScore,false);
+  const badge=document.getElementById('conf-'+mtvId);
+  if(badge){badge.className='conf '+cls;badge.textContent=text;}
+  _refreshMatchSummary();
+}
+
+function _refreshMatchSummary() {
+  const counts={strong:0,likely:0,uncertain:0,none:0};
+  Object.values(mtvData).forEach(m=>{
+    const match=matches[m.id];const s=match?.score||0;const manual=match?.manual;
+    if(manual){counts.strong++;}else if(s>=0.90)counts.strong++;else if(s>=0.70)counts.likely++;else if(s>=0.45)counts.uncertain++;else counts.none++;
+  });
+  document.getElementById('matchSummary').innerHTML=`
+    <span class="ms-chip ms-strong">✓ ${counts.strong} strong match${counts.strong!==1?'es':''}</span>
+    ${counts.likely?`<span class="ms-chip ms-likely">~ ${counts.likely} likely</span>`:''}
+    ${counts.uncertain?`<span class="ms-chip ms-uncertain">? ${counts.uncertain} uncertain</span>`:''}
+    ${counts.none?`<span class="ms-chip ms-none">✗ ${counts.none} unmatched</span>`:''}`;
+  const issues=counts.likely+counts.uncertain+counts.none;
+  const badge=document.getElementById('matchBadge');
+  if(badge){badge.textContent=issues?`${issues} need review`:'All matched';badge.style.background=issues?'var(--amber-dim)':'var(--green-dim)';badge.style.color=issues?'var(--amber)':'var(--green)';badge.style.borderColor=issues?'var(--amber-bdr)':'var(--green-bdr)';}
+}
+
+// ── Loaded State ───────────────────────────────────────────────────────
+function showLoaded(type,msg) {
+  const map={mtv:['mtvUploadArea','mtvLoaded'],cms:['cmsUploadArea','cmsLoaded'],fh:['fhUploadArea','fhLoaded']};
+  document.getElementById(map[type][0]).style.display='none';
+  const el=document.getElementById(map[type][1]);el.style.display='flex';el.className='loaded-bar';
+  el.innerHTML=`<span class="lcheck">✓</span><span>${msg}</span><button class="lreset" onclick="resetSrc('${type}')">Reset</button>`;
+}
+
+function resetSrc(type) {
+  const map={mtv:['mtvUploadArea','mtvLoaded','mtvFile','mtvPreview','mtvLoadedBadge'],cms:['cmsUploadArea','cmsLoaded','cmsFile',null,'cmsLoadedBadge'],fh:['fhUploadArea','fhLoaded','fhFile',null,'fhLoadedBadge']};
+  const ids=map[type];
+  document.getElementById(ids[0]).style.display='block';
+  document.getElementById(ids[1]).style.display='none';
+  document.getElementById(ids[2]).value='';
+  if(ids[3])document.getElementById(ids[3]).innerHTML='';
+  document.getElementById(ids[4]).style.display='none';
+  if(type==='mtv'){mtvData={};matches={};}
+  if(type==='cms'){cmsData={};cmsList=[];matches={};document.getElementById('cmsMapper').style.display='none';}
+  if(type==='fh') {fhData={};document.getElementById('fhMapper').style.display='none';}
+  if(type==='mtv'||type==='cms'){document.getElementById('matchReview').style.display='none';}
+}
+
+// ── File Inputs & Drag-Drop ────────────────────────────────────────────
+function wire(inputId,dropId,loader){
+  document.getElementById(inputId).addEventListener('change',e=>{
+    if(!e.target.files[0])return;
+    const r=new FileReader();r.onload=ev=>loader(ev.target.result);r.readAsText(e.target.files[0]);
+  });
+  const dz=document.getElementById(dropId);
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+  dz.addEventListener('drop',e=>{
+    e.preventDefault();dz.classList.remove('dragover');
+    const f=e.dataTransfer.files[0];if(!f)return;
+    const r=new FileReader();r.onload=ev=>loader(ev.target.result);r.readAsText(f);
+  });
+}
+wire('mtvFile','mtvDrop',loadMtv);
+wire('cmsFile','cmsDrop',loadCms);
+wire('fhFile', 'fhDrop', loadFh);
+
+// ── Find Filmhub entry ─────────────────────────────────────────────────
+function findFh(mtvEntry,cmsEntry) {
+  if(fhData[mtvEntry.id])return fhData[mtvEntry.id];
+  const nl=mtvEntry.name.toLowerCase();
+  return Object.values(fhData).find(f=>f&&f.name&&f.name.toLowerCase()===nl)||null;
+}
+
+// ── Generate Report ────────────────────────────────────────────────────
+async function generate() {
+  if(!Object.keys(mtvData).length){alert('Please load Movies & TV Licensing Data (Step 1).');return;}
+  if(!cmsList.length){alert('Please load YouTube CMS Export (Step 2).');return;}
+
+  // Lock button + show progress
+  const btn=document.getElementById('genBtn');
+  const prog=document.getElementById('genProgress');
+  const fill=document.getElementById('genProgressFill');
+  const ptext=document.getElementById('genProgressText');
+  btn.disabled=true; btn.textContent='Generating…';
+  prog.style.display='block'; fill.style.width='0%';
+
+  report=[];
+  const mtvEntries=Object.values(mtvData);
+  const total=mtvEntries.length;
+  const BATCH=300;
+
+  for(let i=0;i<total;i+=BATCH){
+    const batch=mtvEntries.slice(i,Math.min(i+BATCH,total));
+    batch.forEach(mtv=>{
+      const m=matches[mtv.id]||{};
+      const cms=m.cmsEntry||null;
+      const fh=findFh(mtv,cms);
+      const mtvAll=[...new Set(mtv.windows.flatMap(w=>w.territories))];
+      const mtvSet=new Set(mtvAll);
+      if(!cms){report.push({mtv,cms:null,fh,status:'not_found',overlap:[],remaining:[],compliance:[],mtvAll,matchScore:0,matchManual:false});return;}
+      const overlap   =cms.territories.filter(t=>mtvSet.has(t));
+      const remaining =cms.territories.filter(t=>!mtvSet.has(t));
+      const compliance=(fh&&fh.territories.length)?cms.territories.filter(t=>!new Set(fh.territories).has(t)):[];
+      const status=overlap.length?'action':compliance.length?'compliance':'clear';
+      report.push({mtv,cms,fh,status,overlap,remaining,compliance,mtvAll,matchScore:m.score||0,matchManual:m.manual||false});
+    });
+    const done=Math.min(i+BATCH,total);
+    const pct=Math.round(done/total*100);
+    fill.style.width=pct+'%';
+    ptext.textContent=`Building report… ${done.toLocaleString()} / ${total.toLocaleString()} titles`;
+    await new Promise(r=>setTimeout(r,0));
+  }
+
+  // Restore button, hide progress
+  btn.disabled=false; btn.textContent='Generate Report';
+  prog.style.display='none'; fill.style.width='0%';
+
+  reportPage=0;
+  renderReport();
+  document.getElementById('reportSection').style.display='block';
+  setTimeout(()=>document.getElementById('reportSection').scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+
+// ── Render Report ──────────────────────────────────────────────────────
+function renderReport() {
+  const d=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('reportMeta').textContent=`Generated ${d}  ·  ${report.length} title${report.length!==1?'s':''} analysed`;
+  const c={action:0,clear:0,compliance:0,not_found:0};
+  report.forEach(r=>c[r.status]++);
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat s-red">  <div class="stat-n">${c.action}</div>  <div class="stat-l">CMS Updates Needed</div></div>
+    <div class="stat s-green"><div class="stat-n">${c.clear}</div>   <div class="stat-l">No Overlap</div></div>
+    <div class="stat s-amber"><div class="stat-n">${c.compliance}</div><div class="stat-l">Compliance Issues</div></div>
+    <div class="stat s-muted"><div class="stat-n">${c.not_found}</div><div class="stat-l">Not Matched</div></div>`;
+  renderFiltered();
+}
+
+function setFilter(f,btn) {
+  activeFilter=f;
+  reportPage=0;
+  document.querySelectorAll('.f-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFiltered();
+}
+
+function getFilteredRows() {
+  if(activeFilter==='action')    return report.filter(r=>r.status==='action');
+  if(activeFilter==='clear')     return report.filter(r=>r.status==='clear');
+  if(activeFilter==='compliance')return report.filter(r=>r.status==='compliance'||r.compliance.length>0);
+  if(activeFilter==='not_found') return report.filter(r=>r.status==='not_found');
+  return report;
+}
+
+function renderFiltered() {
+  const allRows=getFilteredRows();
+  const total=allRows.length;
+  const start=reportPage*REPORT_PAGE_SIZE;
+  const end=Math.min(start+REPORT_PAGE_SIZE,total);
+  const pageRows=allRows.slice(start,end);
+
+  const el=document.getElementById('reportContent');
+  if(!total){el.innerHTML='<div class="no-results">No titles match this filter.</div>';return;}
+
+  // Render page cards
+  el.innerHTML=pageRows.map(renderBlock).join('');
+
+  // Pager
+  const pages=Math.ceil(total/REPORT_PAGE_SIZE);
+  let pager=document.getElementById('reportPager');
+  if(!pager){
+    pager=document.createElement('div');
+    pager.id='reportPager';
+    pager.className='report-pager';
+    el.after(pager);
+  }
+  if(pages<=1){pager.style.display='none';}else{
+    pager.style.display='flex';
+    pager.innerHTML=`
+      <button onclick="setReportPage(${reportPage-1})" ${reportPage===0?'disabled':''}>← Prev</button>
+      <span>Page ${reportPage+1} of ${pages} &nbsp;·&nbsp; ${start+1}–${end} of ${total.toLocaleString()} titles</span>
+      <button onclick="setReportPage(${reportPage+1})" ${reportPage>=pages-1?'disabled':''}>Next →</button>`;
+  }
+}
+
+function setReportPage(p) {
+  reportPage=p;
+  renderFiltered();
+  document.getElementById('reportContent').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function renderBlock(r) {
+  const name=r.mtv.name;
+  const channel=r.cms?.channel||r.mtv.channel||'';
+  const id=r.mtv.id;
+  const badges={action:'<span class="badge b-red">⚠ ACTION REQUIRED</span>',clear:'<span class="badge b-green">✓ NO CHANGE</span>',compliance:'<span class="badge b-amber">⚡ COMPLIANCE</span>',not_found:'<span class="badge b-muted">? NOT MATCHED</span>'};
+  const {cls:cCls,text:cTxt}=confLabel(r.matchScore,r.matchManual);
+
+  if(r.status==='not_found')return`<div class="t-block">
+    <div class="t-head"><div class="t-info"><div class="t-name">${esc(name)}</div><div class="t-matched">No CMS match found — return to Step 2b to assign manually</div></div>${badges.not_found}</div>
+    <div class="not-found-body">Title not found in the YouTube CMS export. Use the title match review above to manually assign the correct CMS entry.<div style="margin-top:4px;font-size:0.65rem;color:var(--text-dim);">M&TV territories: ${r.mtvAll.join(', ')}</div></div>
+  </div>`;
+
+  const currTags=r.cms.territories.map(t=>
+    r.overlap.includes(t)?`<span class="tag tag-rem" title="Claimed by M&TV — remove">${t}</span>`
+    :r.compliance.includes(t)?`<span class="tag tag-comp" title="Not in Filmhub avail">${t}</span>`
+    :`<span class="tag tag-keep">${t}</span>`
+  ).join('')||'<span class="tag-none">none set</span>';
+
+  const remTags=r.overlap.length?r.overlap.map(t=>`<span class="tag tag-rem">${t}</span>`).join(''):'<span class="tag-none">none</span>';
+  const keepTags=r.remaining.length?r.remaining.map(t=>`<span class="tag ${r.compliance.includes(t)?'tag-comp':'tag-keep'}">${t}</span>`).join(''):'<span class="tag-none">none — all territories removed</span>';
+
+  let actHtml='';
+  const newStr=r.remaining.join(', ');
+  if(r.status==='action'){
+    actHtml=r.remaining.length
+      ?`<div class="act-block act-do"><span><strong>CMS update:</strong> set territories to <strong style="font-family:'Courier New',monospace">${newStr}</strong></span><button class="copy-btn" onclick="doCopy('${newStr.replace(/'/g,"\\'")}',this)">Copy</button></div>`
+      :`<div class="act-block act-gone">⛔ All territories will be removed from Stash — confirm this is intended before updating CMS.</div>`;
+  } else if(r.status==='compliance'){
+    actHtml=`<div class="act-block act-warn">⚡ <strong>${r.compliance.join(', ')}</strong> ${r.compliance.length===1?'is':'are'} on Stash but not in Filmhub avail — review and consider removing.</div>`;
+  } else {
+    actHtml=`<div class="act-block act-ok">✓ No territory overlap — no CMS update required for this title.</div>`;
+  }
+
+  const fhLine=r.fh?`<div>Filmhub avail: <span class="hi">${r.fh.territories.join(', ')||'—'}</span></div>`:'';
+  const winLine=r.mtv.windows.map(w=>`${w.start?w.start+'→'+w.end+' ':''}<span class="hi">${w.territories.join(', ')}</span>`).join(' · ');
+
+  return`<div class="t-block">
+    <div class="t-head">
+      <div class="t-info">
+        <div class="t-name">${esc(name)}</div>
+        ${channel?`<div class="t-channel">${esc(channel)}</div>`:''}
+        <div class="t-matched">Matched to CMS: "${esc(r.cms.name)}" &nbsp;<span class="conf ${cCls}">${cTxt}</span></div>
+      </div>
+      <div class="t-meta">
+        ${badges[r.status]}
+        <div class="t-mtv-lbl">M&TV: ${r.mtvAll.join(', ')}</div>
+      </div>
+    </div>
+    <div class="t-body">
+      <div class="terr-grid">
+        <div><div class="tg-lbl">Current CMS territories</div><div class="tg-tags">${currTags}</div></div>
+        <div><div class="tg-lbl">Remove — M&TV claims</div><div class="tg-tags">${remTags}</div></div>
+        <div><div class="tg-lbl">Remaining on Stash</div><div class="tg-tags">${keepTags}</div></div>
+      </div>
+      <div class="t-supp">${fhLine}<div>M&TV windows: ${winLine||'—'}</div></div>
+      ${actHtml}
+    </div>
+  </div>`;
+}
+
+// ── Export CSV ─────────────────────────────────────────────────────────
+function exportCSV() {
+  const hdr=['Filmhub ID','M&TV Title','Matched CMS Title','Match Confidence','Stash Channel','Status','Current CMS Territories','M&TV Selected Territories','Territories to Remove','Remaining Stash Territories','CMS Action Required','Filmhub Avail'];
+  const body=report.map(r=>{
+    const ch=r.cms?.channel||r.mtv.channel||'';
+    const conf=r.matchManual?'Manual':r.matchScore>=0.90?'Strong':r.matchScore>=0.70?'Likely':r.matchScore>=0.45?'Uncertain':'No Match';
+    const action=r.status==='action'?(r.remaining.length?`Set territories to: ${r.remaining.join('; ')}`:'REMOVE ALL TERRITORIES')
+                :r.status==='compliance'?`Review: ${r.compliance.join('; ')} not in Filmhub avail`
+                :r.status==='not_found'?'Title not found in CMS export':'No change needed';
+    return[r.mtv.id,r.mtv.name,r.cms?.name||'',conf,ch,r.status,(r.cms?.territories||[]).join('; '),r.mtvAll.join('; '),r.overlap.join('; '),r.remaining.join('; '),action,(r.fh?.territories||[]).join('; ')];
+  });
+  const csv=[hdr,...body].map(row=>row.map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:`filmhub-yt-territory-conflicts-${new Date().toISOString().slice(0,10)}.csv`});
+  a.click();
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function doCopy(v,btn){navigator.clipboard.writeText(v).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);});}
 </script>
 </body>
 </html>
