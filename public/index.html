@@ -1163,10 +1163,12 @@ html{font-size:16px;}
     </div>
   </div>
 
+  </div><!-- /page -->
 </div><!-- /taUploadView -->
 
-  <!-- Report -->
-  <div id="reportSection">
+<!-- Report — lives OUTSIDE taUploadView so it stays visible when upload steps are hidden -->
+<div id="reportSection" style="display:none;">
+  <div class="page" style="padding-top:28px;">
     <div class="report-card">
       <div class="report-head">
         <div>
@@ -1200,11 +1202,8 @@ html{font-size:16px;}
       </div>
     </div>
   </div>
-
-</div>
-
-
-</div>
+</div><!-- /reportSection -->
+</div><!-- /tab-terr -->
 
 <script>
 function switchToolTab(tab) {
