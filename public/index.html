@@ -984,6 +984,22 @@ html{font-size:16px;}
 
 <div id="tab-terr" class="tool-panel tab-terr">
 
+<!-- Cloud report loading banner — shown while fetching, hidden once resolved -->
+<div id="taCloudLoading" style="display:none;text-align:center;padding:80px 20px;color:var(--text-muted);font-size:0.86rem;">
+  <div style="font-size:1.6rem;margin-bottom:10px;">☁</div>
+  Loading saved report…
+</div>
+
+<!-- Cloud report loaded banner — shown when a saved report was found -->
+<div id="taCloudBanner" style="display:none;background:var(--bg-2);border-bottom:1px solid var(--border);padding:10px 36px;display:none;align-items:center;gap:12px;flex-wrap:wrap;">
+  <span style="font-size:0.75rem;color:var(--green);">☁ Report loaded from cloud</span>
+  <span id="taCloudSavedAt" style="font-size:0.72rem;color:var(--text-dim);"></span>
+  <button onclick="taShowUploadView()" style="margin-left:auto;padding:3px 10px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--text-muted);font-size:0.7rem;cursor:pointer;font-family:inherit;">↑ Upload new data</button>
+</div>
+
+<!-- Upload view (Steps 1–3 + Generate) — hidden for techs, shown for admin -->
+<div id="taUploadView">
+
 <!-- Header -->
 <header class="site-header">
   <div class="logo-lockup">
@@ -1078,6 +1094,7 @@ html{font-size:16px;}
         <p>CMS titles often include SEO additions — review the auto-matched pairs and correct any uncertain ones before generating the report</p>
       </div>
       <span id="matchBadge" class="step-loaded-num" style="display:none"></span>
+      <span id="matchSaveStatus" style="display:none;font-size:0.68rem;margin-left:8px;"></span>
     </div>
     <div class="step-body">
       <p class="match-intro">Titles are matched by stripping common SEO suffixes and comparing words. <strong style="color:var(--green)">Strong</strong> matches are auto-accepted. <strong style="color:var(--amber)">Likely</strong> and <strong style="color:var(--red)">Uncertain</strong> matches are flagged — use the search box to correct them. Changes here will carry through to the report.</p>
@@ -1146,6 +1163,8 @@ html{font-size:16px;}
     </div>
   </div>
 
+</div><!-- /taUploadView -->
+
   <!-- Report -->
   <div id="reportSection">
     <div class="report-card">
@@ -1154,8 +1173,10 @@ html{font-size:16px;}
           <h2>Territory Conflict Report</h2>
           <p class="report-meta" id="reportMeta"></p>
         </div>
-        <div class="rpt-actions">
-          <span class="exp-lbl">Export</span>
+        <div class="rpt-actions" style="flex-wrap:wrap;gap:6px;">
+          <input type="password" id="taUploadKey" placeholder="Upload key" style="padding:4px 10px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.72rem;font-family:inherit;width:130px;outline:none;" title="Enter your upload key to push report to the team">
+          <button class="btn btn-orange btn-sm" onclick="pushReportToTeam()" title="Save this report to cloud so team members can load it without uploading CSVs">☁ Push to team</button>
+          <span class="exp-lbl" style="margin-left:4px;">Export</span>
           <button class="btn btn-ghost btn-sm" onclick="exportCSV()">↓ CSV</button>
           <button class="btn btn-ghost btn-sm" onclick="window.print()">Print</button>
         </div>
@@ -1191,6 +1212,10 @@ function switchToolTab(tab) {
   document.querySelectorAll('.top-tab').forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tab); });
   document.getElementById('tab-' + tab).classList.add('active');
   try { localStorage.setItem('stash-active-tab', tab); } catch(e) {}
+  // When switching to Territory Audit, auto-load saved report for team members
+  if (tab === 'terr') {
+    setTimeout(function() { if (typeof tryLoadCloudReport === 'function') tryLoadCloudReport(); }, 50);
+  }
 }
 try {
   var saved = localStorage.getItem('stash-active-tab');
@@ -2673,6 +2698,7 @@ let taSaveTimer = null;
 let matchTablePage = 0;    // pagination for match review table
 const MATCH_PAGE_SIZE = 150;
 let matchFilter = 'all';   // 'all' | 'review'
+let matchSaveTimer = null;
 let reportPage = 0;
 const REPORT_PAGE_SIZE = 50;
 
@@ -2975,11 +3001,14 @@ async function runMatching() {
     await new Promise(r=>setTimeout(r,0));
   }
 
-  // Hide progress, show table
+  // Hide progress, show table — then load any saved manual selections from cloud
   if(pw) pw.style.display='none';
   matchTablePage=0;
-  renderMatchTable();
-  document.getElementById('matchReview').scrollIntoView({behavior:'smooth',block:'nearest'});
+  // Load saved selections before rendering so restored state shows immediately
+  loadMatchSelections().then(() => {
+    renderMatchTable();
+    document.getElementById('matchReview').scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
 }
 
 function renderMatchRow(mtv) {
@@ -3121,6 +3150,7 @@ function acSelect(e, mtvId, cmsName) {
   const badge=document.getElementById('conf-'+mtvId);
   if(badge){badge.className='conf conf-manual';badge.textContent='MANUAL';}
   _refreshMatchSummary();
+  saveMatchSelections();
 }
 
 function acNoMatch(e, mtvId) {
@@ -3139,6 +3169,7 @@ function acNoMatch(e, mtvId) {
   const badge=document.getElementById('conf-'+mtvId);
   if(badge){badge.className='conf conf-none';badge.textContent='SKIPPED';}
   _refreshMatchSummary();
+  saveMatchSelections();
 }
 
 function acClear(e, mtvId) {
@@ -3161,6 +3192,7 @@ function acClear(e, mtvId) {
   const badge=document.getElementById('conf-'+mtvId);
   if(badge){badge.className='conf '+cls;badge.textContent=text;}
   _refreshMatchSummary();
+  saveMatchSelections(); // persist the revert-to-auto decision too
 }
 
 function _refreshMatchSummary() {
@@ -3436,6 +3468,145 @@ function renderBlock(r) {
 }
 
 // ── Export CSV ─────────────────────────────────────────────────────────
+// ── Territory Audit — Cloud Report Save / Load ────────────────────────
+let taReportLoaded = false; // tracks whether we've already attempted a cloud load
+
+async function tryLoadCloudReport() {
+  if (taReportLoaded) return; // only attempt once per session
+  taReportLoaded = true;
+
+  const loading = document.getElementById('taCloudLoading');
+  const uploadView = document.getElementById('taUploadView');
+  if (loading) loading.style.display = 'block';
+  if (uploadView) uploadView.style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/territory?type=report');
+    const json = await resp.json();
+
+    if (json.ok && json.data?.reportData) {
+      const d = json.data;
+      // Restore the report array
+      report = d.reportData;
+      // Also load progress and match selections then render
+      await loadTAProgress();
+      document.getElementById('reportSection').style.display = 'block';
+      reportPage = 0; completionFilter = 'all';
+      renderReport();
+
+      // Show the cloud banner
+      const banner = document.getElementById('taCloudBanner');
+      const savedAt = document.getElementById('taCloudSavedAt');
+      if (banner) banner.style.display = 'flex';
+      if (savedAt && d.savedAt) {
+        savedAt.textContent = `· last updated ${new Date(d.savedAt).toLocaleString()}`;
+      }
+      if (loading) loading.style.display = 'none';
+      return;
+    }
+  } catch(e) {}
+
+  // No cloud report — show the upload view so admin can prep data
+  if (loading) loading.style.display = 'none';
+  if (uploadView) uploadView.style.display = 'block';
+}
+
+async function pushReportToTeam() {
+  if (!report.length) { alert('Generate the report first before pushing to the team.'); return; }
+  const key = document.getElementById('taUploadKey')?.value.trim();
+  if (!key) { alert('Enter your upload key to push the report to the team.'); return; }
+
+  const btn = document.querySelector('.rpt-actions .btn-orange');
+  if (btn) { btn.textContent = '☁ Saving…'; btn.disabled = true; }
+
+  try {
+    const resp = await fetch('/api/territory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Upload-Key': key },
+      body: JSON.stringify({ reportData: report })
+    });
+    const json = await resp.json();
+    if (json.ok) {
+      if (btn) { btn.textContent = '✓ Pushed!'; setTimeout(() => { btn.textContent = '☁ Push to team'; btn.disabled = false; }, 3000); }
+      // Also save current match selections alongside
+      saveMatchSelections();
+    } else {
+      alert('Push failed: ' + (json.error || 'unknown error'));
+      if (btn) { btn.textContent = '☁ Push to team'; btn.disabled = false; }
+    }
+  } catch(e) {
+    alert('Push failed — check your connection.');
+    if (btn) { btn.textContent = '☁ Push to team'; btn.disabled = false; }
+  }
+}
+
+function taShowUploadView() {
+  document.getElementById('taCloudBanner').style.display = 'none';
+  document.getElementById('reportSection').style.display = 'none';
+  document.getElementById('taUploadView').style.display = 'block';
+  taReportLoaded = false; // allow re-loading if they switch tabs again
+}
+
+// ── Territory Audit — Match Selection Persistence ─────────────────────
+// Saves only MANUAL decisions (auto-matches are recomputed from CSVs each time)
+function saveMatchSelections() {
+  clearTimeout(matchSaveTimer);
+  setMatchSaveStatus('saving');
+  matchSaveTimer = setTimeout(async () => {
+    try {
+      // Build a compact map of only manual decisions
+      const manual = {};
+      Object.entries(matches).forEach(([id, m]) => {
+        if (m.manual) {
+          manual[id] = {
+            cmsName: m.cmsEntry?.name || null,
+            noMatch: m.noMatch || false
+          };
+        }
+      });
+      await fetch('/api/territory', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchSelections: manual })
+      });
+      setMatchSaveStatus('saved');
+      setTimeout(() => setMatchSaveStatus(''), 3000);
+    } catch(e) {
+      setMatchSaveStatus('error');
+    }
+  }, 1200);
+}
+
+async function loadMatchSelections() {
+  try {
+    const resp = await fetch('/api/territory');
+    const json = await resp.json();
+    if (!json.ok || !json.data?.matchSelections) return;
+    const saved = json.data.matchSelections;
+    // Apply each saved manual decision over the auto-computed matches
+    Object.entries(saved).forEach(([id, sel]) => {
+      if (!mtvData[id]) return; // title no longer in current M&TV data — skip
+      if (sel.noMatch) {
+        matches[id] = { cmsEntry: null, score: 0, manual: true, noMatch: true };
+      } else if (sel.cmsName) {
+        const entry = cmsData[sel.cmsName] || cmsList.find(c => c.name === sel.cmsName);
+        if (entry) {
+          matches[id] = { cmsEntry: entry, score: 1, manual: true };
+        }
+        // If CMS entry name not found in current data, leave the auto-match in place
+      }
+    });
+  } catch(e) { /* no saved data — stay with auto-matches */ }
+}
+
+function setMatchSaveStatus(state) {
+  const el = document.getElementById('matchSaveStatus');
+  if (!el) return;
+  el.style.display = state ? '' : 'none';
+  el.textContent = state === 'saving' ? '↻ Saving selections…' : state === 'saved' ? '✓ Selections saved' : state === 'error' ? '✗ Save failed' : '';
+  el.style.color = state === 'error' ? 'var(--red)' : state === 'saved' ? 'var(--green)' : 'var(--amber)';
+}
+
 // ── Territory Audit — Progress Tracking ───────────────────────────────
 async function loadTAProgress() {
   try {
