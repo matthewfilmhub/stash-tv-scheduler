@@ -2853,15 +2853,35 @@ function loadMtv(text) {
   showLoaded('mtv',`${n} title${n!==1?'s':''} loaded${removedNote}`);
   document.getElementById('mtvLoadedBadge').style.display='';
   document.getElementById('mtvLoadedBadge').textContent=`${n} titles`;
-  // Preview — show territory column highlighted
-  const cols=Object.keys(rows[0]).slice(0,6);
-  const terrKey=Object.keys(rows[0]).find(c=>/countr|territ|licensed/.test(c))||'';
+  // Count expiring-soon windows (within 30 days) across all loaded data
+  const today2=new Date(); today2.setHours(0,0,0,0);
+  const in30=new Date(today2); in30.setDate(in30.getDate()+30);
+  let expiredCount=0, soonCount=0;
+  Object.values(mtvData).forEach(entry=>{
+    entry.windows.forEach(w=>{
+      if(w.expired) expiredCount++;
+      else if(w.endDate && w.endDate<=in30) soonCount++;
+    });
+  });
+
+  // Preview — show the key columns including end date
+  const allCols=Object.keys(rows[0]);
+  const priorityCols=['title_name','title_id','license_status','license_start_date','license_end_date','licensed_countries'];
+  const previewCols=priorityCols.filter(c=>allCols.includes(c));
+  const endKey='license_end_date';
+  const terrKey=allCols.find(c=>/countr|territ|licensed/.test(c))||'';
   document.getElementById('mtvPreview').innerHTML=`
     <div class="preview-wrap"><table class="preview-table">
-      <thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>
-      <tbody>${rows.slice(0,3).map(r=>`<tr>${cols.map(c=>`<td ${c===terrKey?'class="hi"':''}>${esc(r[c]||'')}</td>`).join('')}</tr>`).join('')}</tbody>
+      <thead><tr>${previewCols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.slice(0,3).map(r=>`<tr>${previewCols.map(c=>`<td ${c===terrKey||c===endKey?'class="hi"':''}>${esc(r[c]||'')}</td>`).join('')}</tr>`).join('')}</tbody>
     </table></div>
-    <p class="preview-more">Showing 3 of ${rows.length} rows · ${n} unique titles${skippedRemoved?` · <span style="color:var(--amber)">${skippedRemoved} rows with status "removed" excluded</span>`:''}</p>`;
+    <p class="preview-more">
+      Showing 3 of ${rows.length} rows · ${n} unique titles
+      ${skippedRemoved?` · <span style="color:var(--amber)">${skippedRemoved} rows with status "removed" excluded</span>`:''}
+      ${expiredCount?` · <span style="color:#06b6d4">↑ ${expiredCount} expired license window${expiredCount!==1?'s':''} → restore opportunities</span>`:''}
+      ${soonCount?` · <span style="color:var(--amber)">⚠ ${soonCount} window${soonCount!==1?'s':''} expiring within 30 days</span>`:''}
+      ${!expiredCount&&!soonCount?` · <span style="color:var(--text-dim)">✓ End dates read — no expired licenses yet</span>`:''}
+    </p>`;
   maybeRunMatching();
 }
 
@@ -3293,6 +3313,7 @@ async function generate() {
     const batch=mtvEntries.slice(i,Math.min(i+BATCH,total));
     batch.forEach(mtv=>{
       const m=matches[mtv.id]||{};
+      if(m.noMatch){return;} // user explicitly marked "No match — skip this title" — exclude from report entirely
       const cms=m.cmsEntry||null;
       const fh=findFh(mtv,cms);
       // Split windows: active (still live) vs expired (end date in the past)
