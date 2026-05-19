@@ -337,6 +337,12 @@ table.cal tbody td.open-col {
 .transcoding-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.5px; background: rgba(6,182,212,0.15); color: var(--teal); }
 .age-badge { font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; background: rgba(168,85,247,0.15); color: #a855f7; letter-spacing: 0.3px; }
 
+/* ── Restore opportunity ── */
+.b-teal  { background:rgba(6,182,212,0.12); color:#06b6d4; border:1px solid rgba(6,182,212,0.35); }
+.tag-restore { background:rgba(6,182,212,0.15); color:#06b6d4; font-weight:600; }
+.act-restore { border-color:#06b6d4; background:rgba(6,182,212,0.08); color:var(--text); }
+.s-teal .stat-n { color:#06b6d4; }
+
 /* ── FOOTER ── */
 .app-footer {
   border-top: 1px solid var(--border); padding: 20px 28px;
@@ -1191,6 +1197,7 @@ html{font-size:16px;}
           <button class="f-btn" onclick="setFilter('clear',this)">No Overlap</button>
           <button class="f-btn" onclick="setFilter('compliance',this)">Compliance Issues</button>
           <button class="f-btn" onclick="setFilter('not_found',this)">Not Matched</button>
+          <button class="f-btn" onclick="setFilter('restore',this)" style="border-color:rgba(6,182,212,0.4);color:#06b6d4;">↑ Restore Opportunity</button>
         </div>
         <div class="filter-bar" style="margin-top:-10px;margin-bottom:18px;">
           <span style="font-size:0.68rem;color:var(--text-dim);align-self:center;margin-right:2px;">Tech status:</span>
@@ -2833,7 +2840,13 @@ function loadMtv(text) {
     if(!id)return;
     if(!mtvData[id])mtvData[id]={id,name,channel:ch,windows:[]};
     // Accumulate all territory windows — deduplication happens at report time via Set
-    if(terr.length)mtvData[id].windows.push({start:s,end:e,territories:terr});
+    if(terr.length){
+      // Parse end date to determine if this license window has already expired
+      const endDate = e ? new Date(e) : null;
+      const today   = new Date(); today.setHours(0,0,0,0);
+      const expired = endDate instanceof Date && !isNaN(endDate) && endDate < today;
+      mtvData[id].windows.push({start:s,end:e,endDate,territories:terr,expired});
+    }
   });
   const n=Object.keys(mtvData).length;
   const removedNote=skippedRemoved?` · ${skippedRemoved} removed licenses skipped`:'';
@@ -3282,14 +3295,38 @@ async function generate() {
       const m=matches[mtv.id]||{};
       const cms=m.cmsEntry||null;
       const fh=findFh(mtv,cms);
-      const mtvAll=[...new Set(mtv.windows.flatMap(w=>w.territories))];
-      const mtvSet=new Set(mtvAll);
-      if(!cms){report.push({mtv,cms:null,fh,status:'not_found',overlap:[],remaining:[],compliance:[],mtvAll,matchScore:0,matchManual:false});return;}
-      const overlap   =cms.territories.filter(t=>mtvSet.has(t));
-      const remaining =cms.territories.filter(t=>!mtvSet.has(t));
-      const compliance=(fh&&fh.territories.length)?cms.territories.filter(t=>!new Set(fh.territories).has(t)):[];
-      const status=overlap.length?'action':compliance.length?'compliance':'clear';
-      report.push({mtv,cms,fh,status,overlap,remaining,compliance,mtvAll,matchScore:m.score||0,matchManual:m.manual||false});
+      // Split windows: active (still live) vs expired (end date in the past)
+      const activeWindows  = mtv.windows.filter(w=>!w.expired);
+      const expiredWindows = mtv.windows.filter(w=>w.expired);
+
+      // Active territories: currently claimed by M&TV → still need to be removed from Stash
+      const mtvActiveAll = [...new Set(activeWindows.flatMap(w=>w.territories))];
+      const mtvActiveSet = new Set(mtvActiveAll);
+
+      // Expired-only territories: M&TV license has ended and NOT reclaimed in another active window
+      const mtvExpiredOnly = [...new Set(
+        expiredWindows.flatMap(w=>w.territories).filter(t=>!mtvActiveSet.has(t))
+      )];
+
+      // Union of all (for display context)
+      const mtvAll = [...new Set([...mtvActiveAll,...mtvExpiredOnly])];
+
+      if(!cms){report.push({mtv,cms:null,fh,status:'not_found',overlap:[],remaining:[],compliance:[],restorable:[],mtvAll,mtvActiveAll,mtvExpiredOnly,matchScore:0,matchManual:false});return;}
+
+      // Territories to REMOVE from Stash: on CMS and still actively claimed by M&TV
+      const overlap    = cms.territories.filter(t=>mtvActiveSet.has(t));
+      const remaining  = cms.territories.filter(t=>!mtvActiveSet.has(t));
+      const compliance = (fh&&fh.territories.length)?cms.territories.filter(t=>!new Set(fh.territories).has(t)):[];
+
+      // Territories to RESTORE to Stash: expired M&TV license, territory NOT currently on CMS
+      const cmsTerrSet = new Set(cms.territories);
+      const restorable = mtvExpiredOnly.filter(t=>!cmsTerrSet.has(t));
+
+      const status = overlap.length ? 'action'
+                   : restorable.length ? 'restore'
+                   : compliance.length ? 'compliance'
+                   : 'clear';
+      report.push({mtv,cms,fh,status,overlap,remaining,compliance,restorable,mtvAll,mtvActiveAll,mtvExpiredOnly,matchScore:m.score||0,matchManual:m.manual||false});
     });
     const done=Math.min(i+BATCH,total);
     const pct=Math.round(done/total*100);
@@ -3313,11 +3350,17 @@ async function generate() {
 function renderReport() {
   const d=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
   document.getElementById('reportMeta').textContent=`Generated ${d}  ·  ${report.length} title${report.length!==1?'s':''} analysed`;
-  const c={action:0,clear:0,compliance:0,not_found:0};
-  report.forEach(r=>c[r.status]++);
+  const c={action:0,clear:0,compliance:0,not_found:0,restore:0};
+  report.forEach(r=>{
+    c[r.status]=(c[r.status]||0)+1;
+    // Also count titles with restore opportunities even if primary status is something else
+    if(r.restorable?.length&&r.status!=='restore') c.restore++;
+  });
+  const restoreTotal=report.filter(r=>r.restorable?.length).length;
   document.getElementById('statsRow').innerHTML=`
-    <div class="stat s-red">  <div class="stat-n">${c.action}</div>  <div class="stat-l">CMS Updates Needed</div></div>
-    <div class="stat s-green"><div class="stat-n">${c.clear}</div>   <div class="stat-l">No Overlap</div></div>
+    <div class="stat s-red">  <div class="stat-n">${c.action}</div>  <div class="stat-l">Remove from Stash</div></div>
+    <div class="stat s-teal"> <div class="stat-n">${restoreTotal}</div><div class="stat-l">Restore to Stash</div></div>
+    <div class="stat s-green"><div class="stat-n">${c.clear}</div>   <div class="stat-l">No Change</div></div>
     <div class="stat s-amber"><div class="stat-n">${c.compliance}</div><div class="stat-l">Compliance Issues</div></div>
     <div class="stat s-muted"><div class="stat-n">${c.not_found}</div><div class="stat-l">Not Matched</div></div>`;
 
@@ -3359,6 +3402,7 @@ function getFilteredRows() {
   else if(activeFilter==='clear')     rows=rows.filter(r=>r.status==='clear');
   else if(activeFilter==='compliance')rows=rows.filter(r=>r.status==='compliance'||r.compliance.length>0);
   else if(activeFilter==='not_found') rows=rows.filter(r=>r.status==='not_found');
+  else if(activeFilter==='restore')   rows=rows.filter(r=>r.restorable?.length>0);
   // Completion filter (layered on top of status filter)
   if(completionFilter==='pending') rows=rows.filter(r=>!taProgress[r.mtv.id]);
   else if(completionFilter==='done') rows=rows.filter(r=>!!taProgress[r.mtv.id]);
@@ -3406,19 +3450,28 @@ function renderBlock(r) {
   const name=r.mtv.name;
   const channel=r.cms?.channel||r.mtv.channel||'';
   const id=r.mtv.id;
-  const badges={action:'<span class="badge b-red">⚠ ACTION REQUIRED</span>',clear:'<span class="badge b-green">✓ NO CHANGE</span>',compliance:'<span class="badge b-amber">⚡ COMPLIANCE</span>',not_found:'<span class="badge b-muted">? NOT MATCHED</span>'};
+  const badges={
+    action:  '<span class="badge b-red">⚠ ACTION REQUIRED</span>',
+    restore: '<span class="badge b-teal">↑ RESTORE TO STASH</span>',
+    clear:   '<span class="badge b-green">✓ NO CHANGE</span>',
+    compliance:'<span class="badge b-amber">⚡ COMPLIANCE</span>',
+    not_found: '<span class="badge b-muted">? NOT MATCHED</span>'
+  };
   const {cls:cCls,text:cTxt}=confLabel(r.matchScore,r.matchManual);
+  const restorable = r.restorable||[];
+  const hasRestore = restorable.length > 0;
 
   const isDone=!!taProgress[id];
   const completeBtn=`<button class="complete-btn${isDone?' done':''}" onclick="toggleComplete('${esc(id)}')">${isDone?'✓ Done':'○ Mark done'}</button>`;
 
   if(r.status==='not_found')return`<div class="t-block${isDone?' ta-done':''}" data-tid="${esc(id)}">
     <div class="t-head"><div class="t-info"><div class="t-name">${esc(name)}</div><div class="t-matched">No CMS match found — return to Step 2b to assign manually</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">${badges.not_found}${completeBtn}</div></div>
-    <div class="not-found-body">Title not found in the YouTube CMS export. Use the title match review above to manually assign the correct CMS entry.<div style="margin-top:4px;font-size:0.65rem;color:var(--text-dim);">M&TV territories: ${r.mtvAll.join(', ')}</div></div>
+    <div class="not-found-body">Title not found in the YouTube CMS export. Use the title match review above to manually assign the correct CMS entry.<div style="margin-top:4px;font-size:0.65rem;color:var(--text-dim);">M&TV active territories: ${(r.mtvActiveAll||r.mtvAll).join(', ')||'—'}</div></div>
   </div>`;
 
+  // Territory tag display — current CMS state
   const currTags=r.cms.territories.map(t=>
-    r.overlap.includes(t)?`<span class="tag tag-rem" title="Claimed by M&TV — remove">${t}</span>`
+    r.overlap.includes(t)?`<span class="tag tag-rem" title="Claimed by active M&TV license — remove">${t}</span>`
     :r.compliance.includes(t)?`<span class="tag tag-comp" title="Not in Filmhub avail">${t}</span>`
     :`<span class="tag tag-keep">${t}</span>`
   ).join('')||'<span class="tag-none">none set</span>';
@@ -3426,6 +3479,7 @@ function renderBlock(r) {
   const remTags=r.overlap.length?r.overlap.map(t=>`<span class="tag tag-rem">${t}</span>`).join(''):'<span class="tag-none">none</span>';
   const keepTags=r.remaining.length?r.remaining.map(t=>`<span class="tag ${r.compliance.includes(t)?'tag-comp':'tag-keep'}">${t}</span>`).join(''):'<span class="tag-none">none — all territories removed</span>';
 
+  // Action block — remove conflicts
   let actHtml='';
   const newStr=r.remaining.join(', ');
   if(r.status==='action'){
@@ -3434,12 +3488,30 @@ function renderBlock(r) {
       :`<div class="act-block act-gone">⛔ All territories will be removed from Stash — confirm this is intended before updating CMS.</div>`;
   } else if(r.status==='compliance'){
     actHtml=`<div class="act-block act-warn">⚡ <strong>${r.compliance.join(', ')}</strong> ${r.compliance.length===1?'is':'are'} on Stash but not in Filmhub avail — review and consider removing.</div>`;
-  } else {
+  } else if(!hasRestore){
     actHtml=`<div class="act-block act-ok">✓ No territory overlap — no CMS update required for this title.</div>`;
   }
 
+  // Restore block — add back expired M&TV territories
+  const restoreHtml = hasRestore ? `
+    <div class="act-block act-restore" style="margin-top:8px;">
+      <span>↑ <strong>Restore expired territories to Stash:</strong> <strong style="font-family:'Courier New',monospace">${restorable.join(', ')}</strong>
+      <span style="font-size:0.65rem;color:var(--text-dim);margin-left:6px;">M&TV license ended — these can be re-added to the Stash CMS asset</span></span>
+      <button class="copy-btn" onclick="doCopy('${restorable.join(', ').replace(/'/g,"\\'")}',this)">Copy</button>
+    </div>` : '';
+
+  // Expired territory info line
+  const expiredLine = (r.mtvExpiredOnly||[]).length
+    ? `<div>Expired M&TV: <span class="hi" style="color:#06b6d4">${(r.mtvExpiredOnly||[]).join(', ')}</span></div>` : '';
   const fhLine=r.fh?`<div>Filmhub avail: <span class="hi">${r.fh.territories.join(', ')||'—'}</span></div>`:'';
-  const winLine=r.mtv.windows.map(w=>`${w.start?w.start+'→'+w.end+' ':''}<span class="hi">${w.territories.join(', ')}</span>`).join(' · ');
+
+  // Windows — mark expired ones
+  const winLine=r.mtv.windows.map(w=>{
+    const label=w.start?`${w.start}→${w.end} `:'';
+    const style=w.expired?'opacity:0.5;text-decoration:line-through':'';
+    const expiredNote=w.expired?` <span style="color:#06b6d4;font-size:0.6rem">EXPIRED</span>`:'';
+    return `<span style="${style}">${label}<span class="hi">${w.territories.join(', ')}</span>${expiredNote}</span>`;
+  }).join(' · ');
 
   return`<div class="t-block${isDone?' ta-done':''}" data-tid="${esc(id)}">
     <div class="t-head">
@@ -3449,19 +3521,21 @@ function renderBlock(r) {
         <div class="t-matched">Matched to CMS: "${esc(r.cms.name)}" &nbsp;<span class="conf ${cCls}">${cTxt}</span></div>
       </div>
       <div class="t-meta">
-        ${badges[r.status]}
-        <div class="t-mtv-lbl">M&TV: ${r.mtvAll.join(', ')}</div>
+        ${badges[r.status]||''}
+        ${hasRestore&&r.status!=='restore'?'<span class="badge b-teal" style="font-size:0.58rem;">↑ RESTORE</span>':''}
+        <div class="t-mtv-lbl">Active M&TV: ${(r.mtvActiveAll||r.mtvAll).join(', ')||'—'}</div>
         ${completeBtn}
       </div>
     </div>
     <div class="t-body">
-      <div class="terr-grid">
+      <div class="terr-grid" style="grid-template-columns:${hasRestore?'1fr 1fr 1fr 1fr':'1fr 1fr 1fr'}">
         <div><div class="tg-lbl">Current CMS territories</div><div class="tg-tags">${currTags}</div></div>
-        <div><div class="tg-lbl">Remove — M&TV claims</div><div class="tg-tags">${remTags}</div></div>
+        <div><div class="tg-lbl">Remove — active M&TV</div><div class="tg-tags">${remTags}</div></div>
         <div><div class="tg-lbl">Remaining on Stash</div><div class="tg-tags">${keepTags}</div></div>
+        ${hasRestore?`<div><div class="tg-lbl" style="color:#06b6d4">↑ Restore — expired M&TV</div><div class="tg-tags">${restorable.map(t=>`<span class="tag tag-restore">${t}</span>`).join('')}</div></div>`:''}
       </div>
-      <div class="t-supp">${fhLine}<div>M&TV windows: ${winLine||'—'}</div></div>
-      ${actHtml}
+      <div class="t-supp">${expiredLine}${fhLine}<div>M&TV windows: ${winLine||'—'}</div></div>
+      ${actHtml}${restoreHtml}
     </div>
   </div>`;
 }
@@ -3687,14 +3761,17 @@ function setCompletionFilter(f, btn) {
 }
 
 function exportCSV() {
-  const hdr=['Filmhub ID','M&TV Title','Matched CMS Title','Match Confidence','Stash Channel','Status','Current CMS Territories','M&TV Selected Territories','Territories to Remove','Remaining Stash Territories','CMS Action Required','Filmhub Avail'];
+  const hdr=['Filmhub ID','M&TV Title','Matched CMS Title','Match Confidence','Stash Channel','Status','Current CMS Territories','Active M&TV Territories','Expired M&TV Territories','Territories to Remove from Stash','Remaining Stash Territories','Territories to Restore to Stash','CMS Action Required','Filmhub Avail'];
   const body=report.map(r=>{
     const ch=r.cms?.channel||r.mtv.channel||'';
     const conf=r.matchManual?'Manual':r.matchScore>=0.90?'Strong':r.matchScore>=0.70?'Likely':r.matchScore>=0.45?'Uncertain':'No Match';
-    const action=r.status==='action'?(r.remaining.length?`Set territories to: ${r.remaining.join('; ')}`:'REMOVE ALL TERRITORIES')
+    const restorable=(r.restorable||[]).join('; ');
+    const action=r.status==='action'?(r.remaining.length?`REMOVE: set territories to ${r.remaining.join('; ')}`:'REMOVE ALL TERRITORIES')
+                :r.status==='restore'?`RESTORE: add back ${restorable} to Stash CMS`
                 :r.status==='compliance'?`Review: ${r.compliance.join('; ')} not in Filmhub avail`
-                :r.status==='not_found'?'Title not found in CMS export':'No change needed';
-    return[r.mtv.id,r.mtv.name,r.cms?.name||'',conf,ch,r.status,(r.cms?.territories||[]).join('; '),r.mtvAll.join('; '),r.overlap.join('; '),r.remaining.join('; '),action,(r.fh?.territories||[]).join('; ')];
+                :r.status==='not_found'?'Title not found in CMS export'
+                :(restorable?`No active conflict; RESTORE: ${restorable}`:'No change needed');
+    return[r.mtv.id,r.mtv.name,r.cms?.name||'',conf,ch,r.status,(r.cms?.territories||[]).join('; '),(r.mtvActiveAll||r.mtvAll).join('; '),(r.mtvExpiredOnly||[]).join('; '),r.overlap.join('; '),r.remaining.join('; '),restorable,action,(r.fh?.territories||[]).join('; ')];
   });
   const csv=[hdr,...body].map(row=>row.map(f=>`"${String(f||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),download:`filmhub-yt-territory-conflicts-${new Date().toISOString().slice(0,10)}.csv`});
