@@ -686,7 +686,8 @@ html{font-size:16px;}
 .ms-none{background:var(--bg-2);color:var(--text-muted);border-color:var(--border);}
 
 /* Match table */
-.match-table-wrap{border:1px solid var(--border);border-radius:6px;overflow:hidden;overflow-x:auto;}
+.match-table-wrap{border:1px solid var(--border);border-radius:6px;overflow-x:auto;}
+/* NOTE: overflow:hidden removed — it clipped the autocomplete dropdown */
 .match-table{width:100%;border-collapse:collapse;font-size:0.76rem;}
 .match-table th{background:var(--bg-2);color:var(--text-muted);font-weight:500;padding:8px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
 .match-table td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
@@ -713,7 +714,8 @@ html{font-size:16px;}
 .ac-input{width:100%;padding:4px 8px;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;color:var(--text-muted);font-size:0.7rem;font-family:inherit;cursor:text;}
 .ac-input:focus{outline:none;border-color:var(--orange);color:var(--text);}
 .ac-input.has-manual{color:var(--blue);border-color:var(--blue-bdr);}
-.ac-dropdown{position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:200;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:4px;max-height:230px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,0.5);display:none;}
+/* #taAcDrop is a global fixed-position dropdown — lives outside the table to escape overflow:hidden */
+#taAcDrop{position:absolute;z-index:9999;background:var(--bg-2);border:1px solid var(--border-hi);border-radius:4px;max-height:230px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,0.5);display:none;min-width:230px;}
 .ac-item{padding:6px 10px;font-size:0.69rem;cursor:pointer;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ac-item:hover{background:var(--orange-dim);color:var(--orange);}
 .ac-item:last-child{border-bottom:none;}
@@ -3159,11 +3161,24 @@ function setMatchFilter(f, btn) {
 }
 
 // ── Autocomplete for match override ──────────────────────────────────────
+// Uses a global dropdown (#taAcDrop) outside the overflow:hidden table so it
+// is never clipped by the container.
+let _acActiveInput = null;
+
+function _repositionAcDrop() {
+  const dd = document.getElementById('taAcDrop');
+  if (!dd || dd.style.display === 'none' || !_acActiveInput) return;
+  const rect = _acActiveInput.getBoundingClientRect();
+  dd.style.top  = (rect.bottom + window.scrollY + 2) + 'px';
+  dd.style.left = (rect.left   + window.scrollX)     + 'px';
+  dd.style.width = rect.width + 'px';
+}
+
 function acSearch(input) {
+  _acActiveInput = input;
   const wrap=input.closest('.ac-wrap');
-  const dd=wrap.querySelector('.ac-dropdown');
-  const q=input.value.trim().toLowerCase();
   const mtvId=wrap.dataset.mtvid;
+  const q=input.value.trim().toLowerCase();
   let results=[];
   if(q.length>=1){
     const qn=normTitle(q);
@@ -3172,19 +3187,23 @@ function acSearch(input) {
   let html=`<div class="ac-item ac-clear" onmousedown="acClear(event,${JSON.stringify(mtvId)})">↺ Auto-match</div>`;
   html+=`<div class="ac-item" style="color:var(--red);opacity:0.85;" onmousedown="acNoMatch(event,${JSON.stringify(mtvId)})">✗ No match — skip this title</div>`;
   html+=results.map(c=>`<div class="ac-item" onmousedown="acSelect(event,${JSON.stringify(mtvId)},${JSON.stringify(c.name)})">${esc(c.name)}</div>`).join('');
+  const dd=document.getElementById('taAcDrop');
   dd.innerHTML=html;
   dd.style.display='block';
+  _repositionAcDrop();
 }
 
 function acBlur(input) {
   setTimeout(()=>{
-    const wrap=input.closest('.ac-wrap');
-    if(wrap) wrap.querySelector('.ac-dropdown').style.display='none';
+    const dd=document.getElementById('taAcDrop');
+    if(dd) dd.style.display='none';
+    _acActiveInput=null;
   },200);
 }
 
 function acSelect(e, mtvId, cmsName) {
   e.preventDefault();
+  document.getElementById('taAcDrop').style.display='none';
   const entry=cmsData[cmsName]||cmsList.find(c=>c.name===cmsName);
   matches[mtvId]={cmsEntry:entry||null,score:1,manual:true};
   matchesChangedSinceGenerate=true; _showRegenBanner();
@@ -3192,7 +3211,6 @@ function acSelect(e, mtvId, cmsName) {
   if(wrap){
     wrap.querySelector('.ac-input').value=cmsName;
     wrap.querySelector('.ac-input').className='ac-input has-manual';
-    wrap.querySelector('.ac-dropdown').style.display='none';
     // Update the matched-CMS cell in same row
     const row=wrap.closest('tr');
     if(row){const td=row.querySelector('.mt-cms');if(td){td.textContent=cmsName;td.className='mt-cms matched';}}
@@ -3205,6 +3223,7 @@ function acSelect(e, mtvId, cmsName) {
 
 function acNoMatch(e, mtvId) {
   e.preventDefault();
+  document.getElementById('taAcDrop').style.display='none';
   matches[mtvId]={cmsEntry:null,score:0,manual:true,noMatch:true};
   matchesChangedSinceGenerate=true; _showRegenBanner();
   const wrap=document.querySelector(`.ac-wrap[data-mtvid="${CSS.escape(mtvId)}"]`);
@@ -3213,7 +3232,6 @@ function acNoMatch(e, mtvId) {
     input.value='';
     input.placeholder='— no match —';
     input.className='ac-input has-manual';
-    wrap.querySelector('.ac-dropdown').style.display='none';
     const row=wrap.closest('tr');
     if(row){const td=row.querySelector('.mt-cms');if(td){td.textContent='skipped — no match';td.className='mt-cms no-match';}}
   }
@@ -3230,13 +3248,13 @@ function acClear(e, mtvId) {
     const s=matchScore(mtvData[mtvId]?.name||'',cms.name,mtvId);
     if(s>bestScore){bestScore=s;best=cms;}
   });
+  document.getElementById('taAcDrop').style.display='none';
   matches[mtvId]={cmsEntry:bestScore>=0.45?best:null,score:bestScore,manual:false};
   matchesChangedSinceGenerate=true; _showRegenBanner();
   const wrap=document.querySelector(`.ac-wrap[data-mtvid="${CSS.escape(mtvId)}"]`);
   if(wrap){
     wrap.querySelector('.ac-input').value=best?.name||'';
     wrap.querySelector('.ac-input').className='ac-input';
-    wrap.querySelector('.ac-dropdown').style.display='none';
     const row=wrap.closest('tr');
     if(row){const td=row.querySelector('.mt-cms');if(td){td.textContent=best?.name||'no match found';td.className='mt-cms '+(best?'matched':'no-match');}}
   }
@@ -3853,6 +3871,12 @@ function _showRegenBanner() {
 
 // Flush any pending match-selection saves when the tab is closed or navigated away
 window.addEventListener('beforeunload', () => { _flushMatchSelections(); });
+
+// Keep global dropdown aligned if the user scrolls while it's open
+window.addEventListener('scroll', _repositionAcDrop, true);
 </script>
+
+<!-- Global autocomplete dropdown — lives outside any overflow:hidden container -->
+<div id="taAcDrop"></div>
 </body>
 </html>
