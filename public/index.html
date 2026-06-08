@@ -3037,9 +3037,19 @@ async function runMatching() {
   if(pw) pw.style.display='none';
   matchTablePage=0;
   // Load saved selections before rendering so restored state shows immediately
-  loadMatchSelections().then(() => {
+  loadMatchSelections().then((restoredCount) => {
     renderMatchTable();
     document.getElementById('matchReview').scrollIntoView({behavior:'smooth',block:'nearest'});
+    // Show restore confirmation if any saved decisions were applied
+    if (restoredCount > 0) {
+      const el = document.getElementById('matchSaveStatus');
+      if (el) {
+        el.style.display = '';
+        el.textContent = `↩ ${restoredCount} saved decision${restoredCount !== 1 ? 's' : ''} restored`;
+        el.style.color = 'var(--blue)';
+        setTimeout(() => setMatchSaveStatus(''), 4000);
+      }
+    }
   });
 }
 
@@ -3643,21 +3653,27 @@ function taShowUploadView() {
 
 // ── Territory Audit — Match Selection Persistence ─────────────────────
 // Saves only MANUAL decisions (auto-matches are recomputed from CSVs each time)
+
+// Build the manual-selections payload (shared by debounced save and beacon flush)
+function _buildMatchSelectionsPayload() {
+  const manual = {};
+  Object.entries(matches).forEach(([id, m]) => {
+    if (m.manual) {
+      manual[id] = {
+        cmsName: m.cmsEntry?.name || null,
+        noMatch: m.noMatch || false
+      };
+    }
+  });
+  return manual;
+}
+
 function saveMatchSelections() {
   clearTimeout(matchSaveTimer);
   setMatchSaveStatus('saving');
   matchSaveTimer = setTimeout(async () => {
     try {
-      // Build a compact map of only manual decisions
-      const manual = {};
-      Object.entries(matches).forEach(([id, m]) => {
-        if (m.manual) {
-          manual[id] = {
-            cmsName: m.cmsEntry?.name || null,
-            noMatch: m.noMatch || false
-          };
-        }
-      });
+      const manual = _buildMatchSelectionsPayload();
       await fetch('/api/territory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3668,29 +3684,41 @@ function saveMatchSelections() {
     } catch(e) {
       setMatchSaveStatus('error');
     }
-  }, 1200);
+  }, 300); // short debounce — batches rapid clicks without risking data loss on close
+}
+
+// Flush any pending match-selection save immediately (called from beforeunload)
+function _flushMatchSelections() {
+  if (!Object.keys(matches).some(id => matches[id].manual)) return;
+  clearTimeout(matchSaveTimer);
+  const payload = JSON.stringify({ matchSelections: _buildMatchSelectionsPayload() });
+  navigator.sendBeacon('/api/territory', new Blob([payload], { type: 'application/json' }));
 }
 
 async function loadMatchSelections() {
+  let restoredCount = 0;
   try {
     const resp = await fetch('/api/territory');
     const json = await resp.json();
-    if (!json.ok || !json.data?.matchSelections) return;
+    if (!json.ok || !json.data?.matchSelections) return restoredCount;
     const saved = json.data.matchSelections;
     // Apply each saved manual decision over the auto-computed matches
     Object.entries(saved).forEach(([id, sel]) => {
       if (!mtvData[id]) return; // title no longer in current M&TV data — skip
       if (sel.noMatch) {
         matches[id] = { cmsEntry: null, score: 0, manual: true, noMatch: true };
+        restoredCount++;
       } else if (sel.cmsName) {
         const entry = cmsData[sel.cmsName] || cmsList.find(c => c.name === sel.cmsName);
         if (entry) {
           matches[id] = { cmsEntry: entry, score: 1, manual: true };
+          restoredCount++;
         }
         // If CMS entry name not found in current data, leave the auto-match in place
       }
     });
   } catch(e) { /* no saved data — stay with auto-matches */ }
+  return restoredCount;
 }
 
 function setMatchSaveStatus(state) {
@@ -3801,6 +3829,9 @@ function exportCSV() {
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function doCopy(v,btn){navigator.clipboard.writeText(v).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);});}
+
+// Flush any pending match-selection saves when the tab is closed or navigated away
+window.addEventListener('beforeunload', () => { _flushMatchSelections(); });
 </script>
 </body>
 </html>
