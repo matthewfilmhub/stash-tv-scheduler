@@ -1159,6 +1159,9 @@ html{font-size:16px;}
 
   <!-- Generate -->
   <div class="step" style="background:var(--bg-2);">
+    <div id="regenBanner" style="display:none;margin-bottom:12px;padding:9px 14px;background:var(--amber-dim);border:1px solid var(--amber-bdr);border-radius:5px;font-size:0.78rem;color:var(--amber);">
+      ⚠ Match selections have changed — <strong>regenerate the report</strong> and re-push to apply these changes to the team view.
+    </div>
     <div class="gen-wrap">
       <button class="btn-gen" id="genBtn" onclick="generate()">Generate Report</button>
       <p class="gen-hint">Requires Steps 1 and 2 · Review title matches in Step 2b · Step 3 enables compliance checking</p>
@@ -2694,6 +2697,7 @@ let cmsRaw    = [];
 let fhRaw     = [];
 let matches   = {};  // { mtvId: { cmsEntry, score, manual } }  — confirmed matches
 let report    = [];
+let matchesChangedSinceGenerate = false; // true after any noMatch/manual change until report is regenerated
 let cmsList   = [];  // flat sorted list of CMS entries for autocomplete
 let cmsIdIdx  = new Map(); // id_pattern (no dashes) → cmsEntry  for O(1) ID lookup
 let cmsWordIdx= new Map(); // word → Set<cmsEntry>  for fast candidate filtering
@@ -3081,17 +3085,20 @@ function renderMatchRow(mtv) {
 function renderMatchTable() {
   const mtvEntries=Object.values(mtvData);
   const total=mtvEntries.length;
-  const counts={strong:0,likely:0,uncertain:0,none:0};
+  const counts={strong:0,likely:0,uncertain:0,none:0,skipped:0};
   mtvEntries.forEach(m=>{
-    const match=matches[m.id];const s=match?.score||0;const manual=match?.manual;
-    if(manual){counts.strong++;}else if(s>=0.90)counts.strong++;else if(s>=0.70)counts.likely++;else if(s>=0.45)counts.uncertain++;else counts.none++;
+    const match=matches[m.id];const s=match?.score||0;const manual=match?.manual;const noMatch=match?.noMatch;
+    if(noMatch){counts.skipped++;}
+    else if(manual){counts.strong++;}
+    else if(s>=0.90)counts.strong++;else if(s>=0.70)counts.likely++;else if(s>=0.45)counts.uncertain++;else counts.none++;
   });
 
   document.getElementById('matchSummary').innerHTML=`
     <span class="ms-chip ms-strong">✓ ${counts.strong} strong match${counts.strong!==1?'es':''}</span>
     ${counts.likely?`<span class="ms-chip ms-likely">~ ${counts.likely} likely</span>`:''}
     ${counts.uncertain?`<span class="ms-chip ms-uncertain">? ${counts.uncertain} uncertain</span>`:''}
-    ${counts.none?`<span class="ms-chip ms-none">✗ ${counts.none} unmatched</span>`:''}`;
+    ${counts.none?`<span class="ms-chip ms-none">✗ ${counts.none} unmatched</span>`:''}
+    ${counts.skipped?`<span class="ms-chip" style="background:var(--bg-2);color:var(--text-dim);border:1px solid var(--border);">⊘ ${counts.skipped} skipped</span>`:''}`;
 
   document.getElementById('matchBadge').style.display='';
   const issues=counts.likely+counts.uncertain+counts.none;
@@ -3180,6 +3187,7 @@ function acSelect(e, mtvId, cmsName) {
   e.preventDefault();
   const entry=cmsData[cmsName]||cmsList.find(c=>c.name===cmsName);
   matches[mtvId]={cmsEntry:entry||null,score:1,manual:true};
+  matchesChangedSinceGenerate=true; _showRegenBanner();
   const wrap=document.querySelector(`.ac-wrap[data-mtvid="${CSS.escape(mtvId)}"]`);
   if(wrap){
     wrap.querySelector('.ac-input').value=cmsName;
@@ -3198,6 +3206,7 @@ function acSelect(e, mtvId, cmsName) {
 function acNoMatch(e, mtvId) {
   e.preventDefault();
   matches[mtvId]={cmsEntry:null,score:0,manual:true,noMatch:true};
+  matchesChangedSinceGenerate=true; _showRegenBanner();
   const wrap=document.querySelector(`.ac-wrap[data-mtvid="${CSS.escape(mtvId)}"]`);
   if(wrap){
     const input=wrap.querySelector('.ac-input');
@@ -3222,6 +3231,7 @@ function acClear(e, mtvId) {
     if(s>bestScore){bestScore=s;best=cms;}
   });
   matches[mtvId]={cmsEntry:bestScore>=0.45?best:null,score:bestScore,manual:false};
+  matchesChangedSinceGenerate=true; _showRegenBanner();
   const wrap=document.querySelector(`.ac-wrap[data-mtvid="${CSS.escape(mtvId)}"]`);
   if(wrap){
     wrap.querySelector('.ac-input').value=best?.name||'';
@@ -3369,6 +3379,11 @@ async function generate() {
   // Restore button, hide progress
   btn.disabled=false; btn.textContent='Generate Report';
   prog.style.display='none'; fill.style.width='0%';
+
+  // Clear "regenerate needed" banner since we just rebuilt the report from current matches
+  matchesChangedSinceGenerate = false;
+  const regenBanner = document.getElementById('regenBanner');
+  if (regenBanner) regenBanner.style.display = 'none';
 
   reportPage=0; completionFilter='all';
   // Load cloud progress before rendering so completed states show immediately
@@ -3829,6 +3844,12 @@ function exportCSV() {
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function doCopy(v,btn){navigator.clipboard.writeText(v).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000);});}
+
+// Show/hide the "regenerate needed" banner near the Generate button
+function _showRegenBanner() {
+  const el = document.getElementById('regenBanner');
+  if (el && matchesChangedSinceGenerate) el.style.display = '';
+}
 
 // Flush any pending match-selection saves when the tab is closed or navigated away
 window.addEventListener('beforeunload', () => { _flushMatchSelections(); });
