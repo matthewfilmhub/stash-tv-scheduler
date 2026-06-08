@@ -3351,7 +3351,10 @@ async function generate() {
     const batch=mtvEntries.slice(i,Math.min(i+BATCH,total));
     batch.forEach(mtv=>{
       const m=matches[mtv.id]||{};
-      if(m.noMatch){return;} // user explicitly marked "No match — skip this title" — exclude from report entirely
+      if(m.noMatch){return;} // user explicitly marked "No match — skip this title"
+      // Only include titles with a confident match: STRONG (≥0.90), LIKELY (≥0.70), or manually confirmed.
+      // UNCERTAIN and NO MATCH auto-results are excluded — wrong CMS asset could get territories removed.
+      if(!m.manual && (m.score||0) < 0.70){return;}
       const cms=m.cmsEntry||null;
       const fh=findFh(mtv,cms);
       // Split windows: active (still live) vs expired (end date in the past)
