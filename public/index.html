@@ -837,6 +837,107 @@ html{font-size:16px;}
   .t-block{break-inside:avoid;}
 }
 
+/* ════ PIPELINE CSS ════ */
+.tab-pipeline {
+  --pl-bg:      #0F0F0D;
+  --pl-bg2:     #1A1917;
+  --pl-bg3:     #211F1D;
+  --pl-bg4:     #272420;
+  --pl-border:  #2C2A27;
+  --pl-border-hi:#3C3A36;
+  --pl-text:    #EDE8DF;
+  --pl-muted:   #A09890;
+  --pl-dim:     #5C5A56;
+  --pl-orange:  #F16521;
+  --pl-orange-d:#C74F12;
+  --pl-orange-dim:rgba(241,101,33,0.12);
+  --pl-green:   #4ADE80;
+  --pl-green-dim:rgba(74,222,128,0.1);
+  --pl-amber:   #FBB040;
+  --pl-amber-dim:rgba(251,176,64,0.12);
+  --pl-red:     #F87171;
+  --pl-red-dim: rgba(248,113,113,0.1);
+  --pl-blue:    #60A5FA;
+  --pl-blue-dim:rgba(96,165,250,0.12);
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--pl-bg);
+  color: var(--pl-text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+#tab-pipeline { background: var(--pl-bg); }
+
+/* Upload zone */
+.pl-upload-zone {
+  max-width: 680px; margin: 60px auto; padding: 48px 32px;
+  border: 2px dashed var(--pl-border-hi); border-radius: 12px;
+  text-align: center; cursor: pointer; transition: all 0.18s;
+  background: var(--pl-bg2);
+}
+.pl-upload-zone:hover,.pl-upload-zone.dragover { border-color: var(--pl-orange); background: var(--pl-orange-dim); }
+.pl-upload-icon { font-size: 2.8rem; margin-bottom: 12px; }
+.pl-upload-title { font-size: 1.15rem; font-weight: 600; margin-bottom: 6px; }
+.pl-upload-sub { font-size: 0.8rem; color: var(--pl-muted); line-height: 1.6; }
+.pl-upload-btn { display: inline-block; margin-top: 18px; padding: 9px 22px; background: var(--pl-orange); color: #0F0F0D; font-weight: 600; font-size: 0.82rem; border-radius: 6px; cursor: pointer; font-family: inherit; border: none; }
+.pl-upload-btn:hover { background: var(--pl-orange-d); }
+
+/* Dashboard layout */
+.pl-dash { max-width: 1080px; margin: 0 auto; padding: 32px 24px 60px; }
+.pl-dash-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+.pl-dash-title { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+.pl-dash-sub { font-size: 0.75rem; color: var(--pl-muted); margin-top: 4px; }
+.pl-refresh-btn { padding: 7px 14px; background: transparent; border: 1px solid var(--pl-border-hi); border-radius: 6px; color: var(--pl-muted); font-size: 0.74rem; font-family: inherit; cursor: pointer; }
+.pl-refresh-btn:hover { border-color: var(--pl-orange); color: var(--pl-orange); }
+
+/* KPI cards */
+.pl-kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 32px; }
+@media(max-width:800px){.pl-kpis{grid-template-columns:repeat(2,1fr);}}
+.pl-kpi { background: var(--pl-bg2); border: 1px solid var(--pl-border); border-radius: 10px; padding: 18px 20px; }
+.pl-kpi-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--pl-muted); margin-bottom: 8px; }
+.pl-kpi-val { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.pl-kpi-sub { font-size: 0.7rem; color: var(--pl-muted); margin-top: 5px; }
+.pl-kpi.accent { border-color: var(--pl-orange); background: var(--pl-orange-dim); }
+.pl-kpi.accent .pl-kpi-val { color: var(--pl-orange); }
+
+/* Section headers */
+.pl-section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.pl-section-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--pl-muted); }
+.pl-section-rule { flex: 1; height: 1px; background: var(--pl-border); }
+
+/* Channel pipeline bars */
+.pl-channels { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--pl-border); border-radius: 10px; overflow: hidden; margin-bottom: 32px; }
+.pl-ch-row { display: grid; grid-template-columns: 260px 1fr 100px 80px; align-items: center; padding: 13px 18px; gap: 16px; border-bottom: 1px solid var(--pl-border); transition: background 0.1s; }
+.pl-ch-row:last-child { border-bottom: none; }
+.pl-ch-row:hover { background: var(--pl-bg3); }
+.pl-ch-name { font-size: 0.78rem; font-weight: 500; line-height: 1.35; color: var(--pl-text); }
+.pl-ch-name small { display: block; font-size: 0.67rem; color: var(--pl-muted); font-weight: 400; margin-top: 1px; }
+.pl-bars { display: flex; flex-direction: column; gap: 4px; }
+.pl-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.pl-bar-track { flex: 1; height: 8px; background: var(--pl-bg4); border-radius: 4px; overflow: hidden; min-width: 0; }
+.pl-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+.pl-bar-label { font-size: 0.66rem; color: var(--pl-muted); white-space: nowrap; width: 54px; text-align: right; flex-shrink: 0; }
+.pl-likely-fill { background: var(--pl-orange); }
+.pl-total-fill  { background: var(--pl-bg4); border: 1px solid var(--pl-border-hi); box-sizing: border-box; background: linear-gradient(90deg, var(--pl-dim) 0%, var(--pl-dim) 100%); opacity: 0.45; }
+.pl-quality { font-size: 0.72rem; font-weight: 600; text-align: center; }
+.pl-health { display: inline-flex; align-items: center; justify-content: center; width: 66px; padding: 3px 0; border-radius: 20px; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.pl-health.green  { background: var(--pl-green-dim);  color: var(--pl-green); }
+.pl-health.amber  { background: var(--pl-amber-dim);  color: var(--pl-amber); }
+.pl-health.red    { background: var(--pl-red-dim);    color: var(--pl-red); }
+.pl-health.blue   { background: var(--pl-blue-dim);   color: var(--pl-blue); }
+.pl-ch-header { background: var(--pl-bg3); border-bottom: 1px solid var(--pl-border); }
+.pl-ch-header .pl-ch-name, .pl-ch-header .pl-bar-label, .pl-ch-header .pl-quality { font-size: 0.64rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--pl-dim); }
+
+/* Opportunity callout */
+.pl-opportunity { background: var(--pl-blue-dim); border: 1px solid rgba(96,165,250,0.2); border-radius: 10px; padding: 22px 24px; margin-bottom: 32px; }
+.pl-opp-title { font-size: 0.9rem; font-weight: 700; color: var(--pl-blue); margin-bottom: 6px; }
+.pl-opp-body { font-size: 0.8rem; color: var(--pl-muted); line-height: 1.65; }
+.pl-opp-num { font-size: 1.7rem; font-weight: 700; color: var(--pl-blue); margin: 10px 0 4px; letter-spacing: -0.03em; }
+.pl-opp-pools { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+.pl-opp-pool { background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.15); border-radius: 8px; padding: 14px 18px; flex: 1; min-width: 180px; }
+.pl-opp-pool-name { font-size: 0.72rem; font-weight: 600; color: var(--pl-blue); margin-bottom: 4px; }
+.pl-opp-pool-num { font-size: 1.4rem; font-weight: 700; }
+.pl-opp-pool-sub { font-size: 0.67rem; color: var(--pl-muted); margin-top: 2px; }
+
 </style>
 </head>
 <body>
@@ -853,6 +954,7 @@ html{font-size:16px;}
   </div>
   <div class="top-nav-tabs">
     <button class="top-tab active" data-tab="sched" onclick="switchToolTab('sched')">&#x1F4C5; Scheduler</button>
+    <button class="top-tab" data-tab="pipeline" onclick="switchToolTab('pipeline')">&#x1F4CA; Pipeline</button>
     <button class="top-tab" data-tab="terr" onclick="switchToolTab('terr')">&#x1F5FA; Territory Audit</button>
   </div>
 </nav>
@@ -1217,6 +1319,227 @@ html{font-size:16px;}
 </div><!-- /reportSection -->
 </div><!-- /tab-terr -->
 
+<!-- ══════════════════════════════════════════════════════════════
+     PIPELINE TAB
+══════════════════════════════════════════════════════════════ -->
+<div id="tab-pipeline" class="tool-panel tab-pipeline">
+
+  <!-- Upload state -->
+  <div id="plUploadView">
+    <div class="pl-upload-zone" id="plDropZone" onclick="document.getElementById('plFileInput').click()">
+      <div class="pl-upload-icon">📊</div>
+      <div class="pl-upload-title">Filmhub Pipeline Data</div>
+      <div class="pl-upload-sub">
+        Drop the Filmhub channel pipeline TSV here, or click to browse.<br>
+        Columns expected: <strong>channel · Likely Fit · Median Quality · Total · Median Quality</strong>
+      </div>
+      <button class="pl-upload-btn" onclick="event.stopPropagation();document.getElementById('plFileInput').click()">Choose TSV file</button>
+      <input type="file" id="plFileInput" accept=".tsv,.txt,.csv" style="display:none" onchange="plHandleFile(this.files[0])">
+    </div>
+  </div>
+
+  <!-- Dashboard state (hidden until data loaded) -->
+  <div id="plDashboard" style="display:none">
+    <div class="pl-dash">
+      <div class="pl-dash-header">
+        <div>
+          <div class="pl-dash-title">Filmhub Pipeline</div>
+          <div class="pl-dash-sub" id="plDashSub">Available titles for licensing by channel</div>
+        </div>
+        <button class="pl-refresh-btn" onclick="plReset()">↑ Upload new data</button>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="pl-kpis" id="plKpis"></div>
+
+      <!-- New channel opportunity callout -->
+      <div id="plOpportunity"></div>
+
+      <!-- Active channels section -->
+      <div class="pl-section-head">
+        <span class="pl-section-title">Channel Pipeline Depth</span>
+        <div class="pl-section-rule"></div>
+      </div>
+      <div class="pl-channels" id="plChannels"></div>
+
+    </div>
+  </div>
+
+</div><!-- /tab-pipeline -->
+
+<script>
+/* ════ PIPELINE JS ════ */
+
+let plData = []; // parsed channel rows
+
+function plHandleFile(file) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => plParseTSV(e.target.result);
+  r.readAsText(file);
+}
+
+function plParseTSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return alert('File appears empty or invalid.');
+  // Skip header row (row 0) — columns: channel, likelyFit, lfQuality, total, totalQuality
+  plData = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split('\t');
+    if (cols.length < 5) continue;
+    const channel    = cols[0].trim();
+    const likelyFit  = parseInt(cols[1]) || 0;
+    const lfQuality  = parseFloat(cols[2]) || 0;
+    const total      = parseInt(cols[3]) || 0;
+    const totQuality = parseFloat(cols[4]) || 0;
+    if (!channel) continue;
+    plData.push({ channel, likelyFit, lfQuality, total, totQuality });
+  }
+  if (!plData.length) return alert('Could not parse any channel rows. Check the file format.');
+  plRender();
+}
+
+function plRender() {
+  document.getElementById('plUploadView').style.display = 'none';
+  document.getElementById('plDashboard').style.display  = '';
+  document.getElementById('plDashSub').textContent =
+    `Available titles for licensing by channel · Loaded ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`;
+
+  // Separate generic pools from active channels
+  const genericRows  = plData.filter(r => /^generic/i.test(r.channel));
+  const channelRows  = plData.filter(r => !/^generic/i.test(r.channel));
+
+  // Sort active channels by likelyFit descending
+  channelRows.sort((a, b) => b.likelyFit - a.likelyFit);
+
+  // ── KPIs ──────────────────────────────────────────────────
+  const totalLF      = plData.reduce((s, r) => s + r.likelyFit, 0);
+  const genericLF    = genericRows.reduce((s, r) => s + r.likelyFit, 0);
+  const healthyCount = channelRows.filter(r => r.likelyFit >= 100).length;
+  const lowCount     = channelRows.filter(r => r.likelyFit < 50).length;
+
+  document.getElementById('plKpis').innerHTML = `
+    <div class="pl-kpi accent">
+      <div class="pl-kpi-label">Total Likely-Fit Titles</div>
+      <div class="pl-kpi-val">${totalLF.toLocaleString()}</div>
+      <div class="pl-kpi-sub">across all channels &amp; pools</div>
+    </div>
+    <div class="pl-kpi">
+      <div class="pl-kpi-label">Generic Pool Available</div>
+      <div class="pl-kpi-val" style="color:var(--pl-blue)">${genericLF.toLocaleString()}</div>
+      <div class="pl-kpi-sub">titles ready for new channels</div>
+    </div>
+    <div class="pl-kpi">
+      <div class="pl-kpi-label">Healthy Pipeline</div>
+      <div class="pl-kpi-val" style="color:var(--pl-green)">${healthyCount}</div>
+      <div class="pl-kpi-sub">channels with 100+ likely-fit titles</div>
+    </div>
+    <div class="pl-kpi">
+      <div class="pl-kpi-label">Needs Attention</div>
+      <div class="pl-kpi-val" style="color:var(--pl-red)">${lowCount}</div>
+      <div class="pl-kpi-sub">active channels with &lt;50 likely-fit titles</div>
+    </div>`;
+
+  // ── Opportunity callout ────────────────────────────────────
+  if (genericRows.length) {
+    const oppHtml = `
+      <div class="pl-opportunity">
+        <div class="pl-opp-title">🚀 New Channel Opportunity</div>
+        <div class="pl-opp-body">Filmhub's generic pools contain titles not yet assigned to a dedicated channel. These represent the largest untapped pipeline for expanding the Stash network.</div>
+        <div class="pl-opp-num">${genericLF.toLocaleString()}</div>
+        <div style="font-size:0.72rem;color:var(--pl-muted);">likely-fit titles available for new channel creation</div>
+        <div class="pl-opp-pools">
+          ${genericRows.map(r => `
+            <div class="pl-opp-pool">
+              <div class="pl-opp-pool-name">${r.channel}</div>
+              <div class="pl-opp-pool-num">${r.likelyFit.toLocaleString()} <span style="font-size:0.8rem;font-weight:400;color:var(--pl-muted)">likely fit</span></div>
+              <div class="pl-opp-pool-sub">${r.total.toLocaleString()} total available · quality ${r.lfQuality.toFixed(2)}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    document.getElementById('plOpportunity').innerHTML = oppHtml;
+  }
+
+  // ── Channel bars ───────────────────────────────────────────
+  const maxVal = Math.max(...channelRows.map(r => r.total), 1);
+
+  let html = `
+    <div class="pl-ch-row pl-ch-header">
+      <div class="pl-ch-name">Channel</div>
+      <div>
+        <div class="pl-bar-wrap"><span style="font-size:0.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--pl-dim);">— Likely Fit &nbsp;&nbsp; — Total Available</span></div>
+      </div>
+      <div class="pl-quality" style="font-size:.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--pl-dim);">Quality</div>
+      <div style="font-size:.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--pl-dim);text-align:center;">Pipeline</div>
+    </div>`;
+
+  channelRows.forEach(r => {
+    const lfPct  = (r.likelyFit / maxVal * 100).toFixed(1);
+    const totPct = (r.total     / maxVal * 100).toFixed(1);
+
+    // Health indicator
+    let health, healthLabel;
+    if (r.likelyFit >= 200)      { health = 'green';  healthLabel = 'Strong'; }
+    else if (r.likelyFit >= 100) { health = 'green';  healthLabel = 'Healthy'; }
+    else if (r.likelyFit >= 50)  { health = 'amber';  healthLabel = 'Moderate'; }
+    else if (r.likelyFit >= 20)  { health = 'amber';  healthLabel = 'Low'; }
+    else                          { health = 'red';    healthLabel = 'Critical'; }
+
+    // Quality colour
+    const qColor = r.lfQuality >= 1.4 ? 'var(--pl-green)' : r.lfQuality >= 1.0 ? 'var(--pl-text)' : 'var(--pl-muted)';
+    const qStar  = r.lfQuality >= 1.4 ? '★ ' : '';
+
+    // Short display name — strip the trailing "on YouTube" and "Stash -"
+    const shortName = r.channel
+      .replace(/ on YouTube$/i, '')
+      .replace(/^Stash\s*[-–]\s*/i, '');
+    const isFullStash = /^Stash/i.test(r.channel) && !/generic/i.test(r.channel);
+
+    html += `
+      <div class="pl-ch-row">
+        <div class="pl-ch-name">
+          ${isFullStash ? `<small style="color:var(--pl-orange);font-weight:600;font-size:0.6rem;">STASH</small>` : ''}
+          ${shortName}
+        </div>
+        <div class="pl-bars">
+          <div class="pl-bar-wrap">
+            <div class="pl-bar-track"><div class="pl-bar-fill pl-likely-fill" style="width:${lfPct}%"></div></div>
+            <span class="pl-bar-label">${r.likelyFit.toLocaleString()} likely</span>
+          </div>
+          <div class="pl-bar-wrap">
+            <div class="pl-bar-track"><div class="pl-bar-fill pl-total-fill" style="width:${totPct}%"></div></div>
+            <span class="pl-bar-label">${r.total.toLocaleString()} total</span>
+          </div>
+        </div>
+        <div class="pl-quality" style="color:${qColor}">${qStar}${r.lfQuality.toFixed(2)}</div>
+        <div style="text-align:center"><span class="pl-health ${health}">${healthLabel}</span></div>
+      </div>`;
+  });
+
+  document.getElementById('plChannels').innerHTML = html;
+}
+
+function plReset() {
+  plData = [];
+  document.getElementById('plDashboard').style.display  = 'none';
+  document.getElementById('plUploadView').style.display = '';
+  document.getElementById('plOpportunity').innerHTML = '';
+  document.getElementById('plFileInput').value = '';
+}
+
+// Drag-and-drop wiring
+(function() {
+  const dz = document.getElementById('plDropZone');
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) plHandleFile(f);
+  });
+})();
+</script>
+
 <script>
 function switchToolTab(tab) {
   document.querySelectorAll('.tool-panel').forEach(function(p) { p.classList.remove('active'); });
@@ -1231,6 +1554,7 @@ function switchToolTab(tab) {
 try {
   var saved = localStorage.getItem('stash-active-tab');
   if (saved === 'terr') switchToolTab('terr');
+  else if (saved === 'pipeline') switchToolTab('pipeline');
 } catch(e) {}
 
 /* ════ SCHEDULER JS ════ */
