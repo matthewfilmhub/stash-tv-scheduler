@@ -937,6 +937,8 @@ html{font-size:16px;}
 .pl-opp-pool-name { font-size: 0.72rem; font-weight: 600; color: var(--pl-blue); margin-bottom: 4px; }
 .pl-opp-pool-num { font-size: 1.4rem; font-weight: 700; }
 .pl-opp-pool-sub { font-size: 0.67rem; color: var(--pl-muted); margin-top: 2px; }
+.pl-cloud-bar { display:flex; align-items:center; }
+
 
 </style>
 </head>
@@ -1330,10 +1332,10 @@ html{font-size:16px;}
     Loading saved pipeline data…
   </div>
 
-  <!-- Cloud loaded banner -->
-  <div id="plCloudBanner" style="display:none;background:var(--pl-bg2);border-bottom:1px solid var(--pl-border);padding:10px 36px;align-items:center;gap:12px;flex-wrap:wrap;">
-    <span style="font-size:0.75rem;color:var(--pl-green);">☁ Pipeline data loaded from cloud</span>
-    <span id="plCloudSavedAt" style="font-size:0.72rem;color:var(--pl-dim);"></span>
+  <!-- Cloud loaded / save-status banner -->
+  <div id="plCloudBanner" style="display:none;background:var(--pl-bg2);border-bottom:1px solid var(--pl-border);padding:10px 36px;flex-wrap:wrap;" class="pl-cloud-bar">
+    <span id="plCloudStatus" style="font-size:0.75rem;color:var(--pl-green);">☁ Pipeline data synced to cloud</span>
+    <span id="plCloudSavedAt" style="font-size:0.72rem;color:var(--pl-dim);margin-left:10px;"></span>
     <button onclick="plReset()" style="margin-left:auto;padding:3px 10px;border:1px solid var(--pl-border);border-radius:3px;background:transparent;color:var(--pl-muted);font-size:0.7rem;cursor:pointer;font-family:inherit;">↑ Upload new data</button>
   </div>
 
@@ -1415,14 +1417,33 @@ function plParseTSV(text) {
 }
 
 // ── Cloud save ────────────────────────────────────────────────────────
+function plSetCloudStatus(msg, color) {
+  const banner = document.getElementById('plCloudBanner');
+  const status = document.getElementById('plCloudStatus');
+  if (banner) banner.style.display = 'flex';
+  if (status) { status.textContent = msg; status.style.color = color || 'var(--pl-green)'; }
+}
+
 async function plSaveToCloud() {
+  plSetCloudStatus('↻ Saving to cloud…', 'var(--pl-amber)');
   try {
-    await fetch('/api/pipeline', {
+    const resp = await fetch('/api/pipeline', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rows: plData }),
     });
-  } catch (e) { /* non-critical — dashboard already rendered locally */ }
+    const json = await resp.json();
+    if (json.ok) {
+      const now = new Date();
+      plSetCloudStatus('☁ Synced to cloud', 'var(--pl-green)');
+      const savedAt = document.getElementById('plCloudSavedAt');
+      if (savedAt) savedAt.textContent = `· ${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})} at ${now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+    } else {
+      plSetCloudStatus('✗ Cloud save failed: ' + (json.error || 'unknown error'), 'var(--pl-red)');
+    }
+  } catch (e) {
+    plSetCloudStatus('✗ Cloud save failed — check connection', 'var(--pl-red)');
+  }
 }
 
 // ── Cloud auto-load ───────────────────────────────────────────────────
@@ -1443,17 +1464,16 @@ async function tryLoadCloudPipeline() {
     if (json.ok && json.data?.rows?.length) {
       plData = json.data.rows;
       plRender();
-
-      // Show cloud banner with saved timestamp
-      const banner  = document.getElementById('plCloudBanner');
+      // Show banner with saved timestamp
       const savedAt = document.getElementById('plCloudSavedAt');
-      if (banner) banner.style.display = 'flex';
-      if (savedAt && json.data.savedAt) {
+      if (json.data.savedAt) {
         const d = new Date(json.data.savedAt);
-        savedAt.textContent = `Saved ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} at ${d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+        const ts = `· ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} at ${d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+        if (savedAt) savedAt.textContent = ts;
       }
+      plSetCloudStatus('☁ Pipeline data loaded from cloud', 'var(--pl-green)');
     } else {
-      // No cloud data — show upload view
+      // No cloud data yet — show upload view
       if (uploadView) uploadView.style.display = '';
     }
   } catch (e) {
