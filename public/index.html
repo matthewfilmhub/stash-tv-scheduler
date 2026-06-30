@@ -1324,6 +1324,19 @@ html{font-size:16px;}
 ══════════════════════════════════════════════════════════════ -->
 <div id="tab-pipeline" class="tool-panel tab-pipeline">
 
+  <!-- Cloud loading spinner -->
+  <div id="plCloudLoading" style="display:none;text-align:center;padding:80px 20px;color:var(--pl-muted);font-size:0.86rem;">
+    <div style="font-size:1.6rem;margin-bottom:10px;">☁</div>
+    Loading saved pipeline data…
+  </div>
+
+  <!-- Cloud loaded banner -->
+  <div id="plCloudBanner" style="display:none;background:var(--pl-bg2);border-bottom:1px solid var(--pl-border);padding:10px 36px;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:0.75rem;color:var(--pl-green);">☁ Pipeline data loaded from cloud</span>
+    <span id="plCloudSavedAt" style="font-size:0.72rem;color:var(--pl-dim);"></span>
+    <button onclick="plReset()" style="margin-left:auto;padding:3px 10px;border:1px solid var(--pl-border);border-radius:3px;background:transparent;color:var(--pl-muted);font-size:0.7rem;cursor:pointer;font-family:inherit;">↑ Upload new data</button>
+  </div>
+
   <!-- Upload state -->
   <div id="plUploadView">
     <div class="pl-upload-zone" id="plDropZone" onclick="document.getElementById('plFileInput').click()">
@@ -1370,7 +1383,8 @@ html{font-size:16px;}
 <script>
 /* ════ PIPELINE JS ════ */
 
-let plData = []; // parsed channel rows
+let plData = [];           // parsed channel rows
+let plCloudLoaded = false; // guard against repeated auto-loads
 
 function plHandleFile(file) {
   if (!file) return;
@@ -1397,6 +1411,55 @@ function plParseTSV(text) {
   }
   if (!plData.length) return alert('Could not parse any channel rows. Check the file format.');
   plRender();
+  plSaveToCloud(); // push to cloud so teammates see latest data automatically
+}
+
+// ── Cloud save ────────────────────────────────────────────────────────
+async function plSaveToCloud() {
+  try {
+    await fetch('/api/pipeline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: plData }),
+    });
+  } catch (e) { /* non-critical — dashboard already rendered locally */ }
+}
+
+// ── Cloud auto-load ───────────────────────────────────────────────────
+async function tryLoadCloudPipeline() {
+  if (plCloudLoaded) return;
+  plCloudLoaded = true;
+
+  const loading    = document.getElementById('plCloudLoading');
+  const uploadView = document.getElementById('plUploadView');
+  if (loading)    loading.style.display = 'block';
+  if (uploadView) uploadView.style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/pipeline');
+    const json = await resp.json();
+    if (loading) loading.style.display = 'none';
+
+    if (json.ok && json.data?.rows?.length) {
+      plData = json.data.rows;
+      plRender();
+
+      // Show cloud banner with saved timestamp
+      const banner  = document.getElementById('plCloudBanner');
+      const savedAt = document.getElementById('plCloudSavedAt');
+      if (banner) banner.style.display = 'flex';
+      if (savedAt && json.data.savedAt) {
+        const d = new Date(json.data.savedAt);
+        savedAt.textContent = `Saved ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} at ${d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+      }
+    } else {
+      // No cloud data — show upload view
+      if (uploadView) uploadView.style.display = '';
+    }
+  } catch (e) {
+    if (loading)    loading.style.display = 'none';
+    if (uploadView) uploadView.style.display = '';
+  }
 }
 
 function plRender() {
@@ -1521,8 +1584,11 @@ function plRender() {
 
 function plReset() {
   plData = [];
-  document.getElementById('plDashboard').style.display  = 'none';
-  document.getElementById('plUploadView').style.display = '';
+  plCloudLoaded = false; // allow re-load next time tab is opened
+  document.getElementById('plDashboard').style.display    = 'none';
+  document.getElementById('plUploadView').style.display   = '';
+  document.getElementById('plCloudBanner').style.display  = 'none';
+  document.getElementById('plCloudLoading').style.display = 'none';
   document.getElementById('plOpportunity').innerHTML = '';
   document.getElementById('plFileInput').value = '';
 }
@@ -1549,6 +1615,10 @@ function switchToolTab(tab) {
   // When switching to Territory Audit, auto-load saved report for team members
   if (tab === 'terr') {
     setTimeout(function() { if (typeof tryLoadCloudReport === 'function') tryLoadCloudReport(); }, 50);
+  }
+  // When switching to Pipeline, auto-load saved data from cloud
+  if (tab === 'pipeline') {
+    setTimeout(function() { if (typeof tryLoadCloudPipeline === 'function') tryLoadCloudPipeline(); }, 50);
   }
 }
 try {
