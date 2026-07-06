@@ -906,7 +906,7 @@ html{font-size:16px;}
 
 /* Channel pipeline bars */
 .pl-channels { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--pl-border); border-radius: 10px; overflow: hidden; margin-bottom: 32px; }
-.pl-ch-row { display: grid; grid-template-columns: 260px 1fr 100px 80px; align-items: center; padding: 13px 18px; gap: 16px; border-bottom: 1px solid var(--pl-border); transition: background 0.1s; }
+.pl-ch-row { display: grid; grid-template-columns: minmax(260px, 1.5fr) 2fr 90px 90px; align-items: center; padding: 13px 18px; gap: 16px; border-bottom: 1px solid var(--pl-border); transition: background 0.1s; }
 .pl-ch-row:last-child { border-bottom: none; }
 .pl-ch-row:hover { background: var(--pl-bg3); }
 .pl-ch-name { font-size: 0.78rem; font-weight: 500; line-height: 1.35; color: var(--pl-text); }
@@ -1572,18 +1572,9 @@ function plRender() {
     const qColor = r.lfQuality >= 1.4 ? 'var(--pl-green)' : r.lfQuality >= 1.0 ? 'var(--pl-text)' : 'var(--pl-muted)';
     const qStar  = r.lfQuality >= 1.4 ? '★ ' : '';
 
-    // Short display name — strip the trailing "on YouTube" and "Stash -"
-    const shortName = r.channel
-      .replace(/ on YouTube$/i, '')
-      .replace(/^Stash\s*[-–]\s*/i, '');
-    const isFullStash = /^Stash/i.test(r.channel) && !/generic/i.test(r.channel);
-
     html += `
       <div class="pl-ch-row">
-        <div class="pl-ch-name">
-          ${isFullStash ? `<small style="color:var(--pl-orange);font-weight:600;font-size:0.6rem;">STASH</small>` : ''}
-          ${shortName}
-        </div>
+        <div class="pl-ch-name">${esc(r.channel)}</div>
         <div class="pl-bars">
           <div class="pl-bar-wrap">
             <div class="pl-bar-track"><div class="pl-bar-fill pl-likely-fill" style="width:${lfPct}%"></div></div>
