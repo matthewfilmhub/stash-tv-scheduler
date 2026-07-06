@@ -3140,10 +3140,9 @@ function parseCSVTA(text) {
 
 function parseTerritories(str) {
   if(!str)return[];
-  let s=str.replace(/^["'{\s]+/,'').replace(/["'}\s]+$/,'').trim();
-  if(!s)return[];
-  const sep=s.includes(',')? ',':s.includes(';')?';':' ';
-  return s.split(sep).map(x=>x.trim().replace(/["'{}]/g,'').toUpperCase()).filter(x=>/^[A-Z]{2,3}$/.test(x));
+  // Extract all 2-3 char territory codes regardless of delimiter or quoting style.
+  // Handles: ["US" "CA" "AU"], ["GB"], US,CA,AU, US;CA;AU, etc.
+  return [...new Set((str.toUpperCase().match(/\b[A-Z]{2,3}\b/g)||[]))];
 }
 
 // ── Fuzzy Title Matching ───────────────────────────────────────────────
