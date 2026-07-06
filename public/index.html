@@ -3951,25 +3951,44 @@ function renderBlock(r) {
   const keepTags=r.remaining.length?r.remaining.map(t=>`<span class="tag ${r.compliance.includes(t)?'tag-comp':'tag-keep'}">${t}</span>`).join(''):'<span class="tag-none">none — all territories removed</span>';
 
   // Action block — remove conflicts
+  // Box 1: full correct territory set = remaining (non-conflicting) + restorable (expired M&TV, can re-add)
+  // Box 2: just the territories being actively removed = overlap (active M&TV conflicts)
   let actHtml='';
-  const newStr=r.remaining.join(', ');
+  const fullSet=[...new Set([...r.remaining,...restorable])].sort();
+  const fullStr=fullSet.join(', ');
+  const removeStr=(r.overlap||[]).join(', ');
   if(r.status==='action'){
-    actHtml=r.remaining.length
-      ?`<div class="act-block act-do"><span><strong>CMS update:</strong> set territories to <strong style="font-family:'Courier New',monospace">${newStr}</strong></span><button class="copy-btn" onclick="doCopy('${newStr.replace(/'/g,"\\'")}',this)">Copy</button></div>`
-      :`<div class="act-block act-gone">⛔ All territories will be removed from Stash — confirm this is intended before updating CMS.</div>`;
+    if(r.remaining.length===0 && restorable.length===0){
+      actHtml=`<div class="act-block act-gone">⛔ All territories will be removed from Stash — confirm this is intended before updating CMS.</div>`;
+    } else {
+      actHtml=`<div class="act-block act-do" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+          <span><strong>① Set territories to</strong> <span style="font-size:0.7rem;color:var(--text-dim)">(paste into CMS territory field)</span><br><strong style="font-family:'Courier New',monospace">${fullStr}</strong></span>
+          <button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${fullStr.replace(/'/g,"\\'")}',this)">Copy</button>
+        </div>
+        ${removeStr?`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;">
+          <span><strong>② Territories to remove</strong> <span style="font-size:0.7rem;color:var(--text-dim)">(active M&TV conflicts only)</span><br><strong style="font-family:'Courier New',monospace">${removeStr}</strong></span>
+          <button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${removeStr.replace(/'/g,"\\'")}',this)">Copy</button>
+        </div>`:''}
+      </div>`;
+    }
   } else if(r.status==='compliance'){
     actHtml=`<div class="act-block act-warn">⚡ <strong>${r.compliance.join(', ')}</strong> ${r.compliance.length===1?'is':'are'} on Stash but not in Filmhub avail — review and consider removing.</div>`;
   } else if(!hasRestore){
     actHtml=`<div class="act-block act-ok">✓ No territory overlap — no CMS update required for this title.</div>`;
+  } else {
+    // restore-only status: show what to add back
+    actHtml=`<div class="act-block act-restore">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <span>↑ <strong>Restore expired territories to Stash:</strong><br><strong style="font-family:'Courier New',monospace">${restorable.join(', ')}</strong>
+        <span style="font-size:0.65rem;color:var(--text-dim);margin-left:6px;">M&TV license ended — these can be re-added to the Stash CMS asset</span></span>
+        <button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${restorable.join(', ').replace(/'/g,"\\'")}',this)">Copy</button>
+      </div>
+    </div>`;
   }
 
-  // Restore block — add back expired M&TV territories
-  const restoreHtml = hasRestore ? `
-    <div class="act-block act-restore" style="margin-top:8px;">
-      <span>↑ <strong>Restore expired territories to Stash:</strong> <strong style="font-family:'Courier New',monospace">${restorable.join(', ')}</strong>
-      <span style="font-size:0.65rem;color:var(--text-dim);margin-left:6px;">M&TV license ended — these can be re-added to the Stash CMS asset</span></span>
-      <button class="copy-btn" onclick="doCopy('${restorable.join(', ').replace(/'/g,"\\'")}',this)">Copy</button>
-    </div>` : '';
+  // Restore block — no longer shown separately (folded into actHtml above)
+  const restoreHtml = '';
 
   // Expired territory info line
   const expiredLine = (r.mtvExpiredOnly||[]).length
