@@ -18,7 +18,7 @@ function getCookie(request, name) {
   return null;
 }
 
-export async function middleware(request) {
+export default async function middleware(request) {
   const { pathname } = new URL(request.url);
 
   // Always pass through: login page, auth API, and Vercel internals
