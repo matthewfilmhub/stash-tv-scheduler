@@ -3289,6 +3289,7 @@ function _draftCounts(channel) {
   let ready = 0, blocked = 0;
   (APP.items || []).forEach(item => {
     if (item.channel !== channel) return;
+    if (item.isAgeRestricted) return; // exclude 18+ titles — not viable for publishing
     if (item.status === 'draft') ready++;
     else if (item.status === 'draft_blocked' || item.status === 'transcoding') blocked++;
   });
