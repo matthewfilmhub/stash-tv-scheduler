@@ -1,5 +1,8 @@
 // api/youtube-auth.js — OAuth 2.0 flow for YouTube Data API
+import { list, del } from '@vercel/blob';
 import { getStoredTokens, storeTokens } from './_youtube.js';
+
+const TOKEN_BLOB = 'youtube-oauth-tokens.json';
 
 const REDIRECT_URI = process.env.YOUTUBE_REDIRECT_URI
   || 'https://stash-tv-scheduler.vercel.app/api/youtube-auth';
@@ -33,6 +36,15 @@ export default async function handler(req, res) {
   if (action === 'status') {
     const tokens = await getStoredTokens();
     return res.status(200).json({ connected: !!tokens });
+  }
+
+  // ── Disconnect: delete stored tokens ───────────────────────────────
+  if (action === 'disconnect') {
+    try {
+      const { blobs } = await list({ prefix: TOKEN_BLOB });
+      if (blobs.length) await del(blobs[0].url);
+    } catch (e) { /* already gone */ }
+    return res.status(200).json({ ok: true });
   }
 
   // ── OAuth callback (Google redirects here with ?code=...) ───────────

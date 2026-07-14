@@ -1069,6 +1069,7 @@ html{font-size:16px;}
     <div id="yt-connect-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="btn btn-outline" id="yt-connect-btn" onclick="ytConnect()" style="border-color:#FF0000;color:#FF0000;">🔗 Connect YouTube Account</button>
       <button class="btn btn-ghost" id="yt-sync-btn" onclick="ytSync()" style="display:none;">↻ Sync from YouTube</button>
+      <button class="btn btn-ghost" id="yt-disconnect-btn" onclick="ytDisconnect()" style="display:none;color:#7A7873;font-size:12px;">✕ Disconnect</button>
     </div>
     <div id="yt-sync-status" style="margin-top:10px;font-size:12px;color:var(--dim);display:none;"></div>
     <div style="margin-top:12px;font-size:11px;color:#5a5652;">ℹ️ Connect Notion below to sync Copyright Claim (CIC) flags automatically. Without it, CIC titles show as clean drafts.</div>
@@ -3277,23 +3278,36 @@ function loadDemo() {
 })();
 
 function _updateYtUI(connected) {
-  const badge     = document.getElementById('yt-connect-badge');
-  const connectBtn = document.getElementById('yt-connect-btn');
-  const syncBtn   = document.getElementById('yt-sync-btn');
-  const headerBtn = document.getElementById('yt-header-sync-btn');
-  const indicator = document.getElementById('yt-sync-indicator');
+  const badge         = document.getElementById('yt-connect-badge');
+  const connectBtn    = document.getElementById('yt-connect-btn');
+  const syncBtn       = document.getElementById('yt-sync-btn');
+  const disconnectBtn = document.getElementById('yt-disconnect-btn');
+  const headerBtn     = document.getElementById('yt-header-sync-btn');
+  const indicator     = document.getElementById('yt-sync-indicator');
 
   if (connected) {
-    if (badge)      { badge.textContent = 'CONNECTED'; badge.style.background = '#0f2e15'; badge.style.color = '#4ade80'; }
-    if (connectBtn) connectBtn.style.display = 'none';
-    if (syncBtn)    syncBtn.style.display = '';
-    if (headerBtn)  headerBtn.style.display = '';
-    if (indicator)  indicator.style.display = '';
+    if (badge)         { badge.textContent = 'CONNECTED'; badge.style.background = '#0f2e15'; badge.style.color = '#4ade80'; }
+    if (connectBtn)    connectBtn.style.display = 'none';
+    if (syncBtn)       syncBtn.style.display = '';
+    if (disconnectBtn) disconnectBtn.style.display = '';
+    if (headerBtn)     headerBtn.style.display = '';
+    if (indicator)     indicator.style.display = '';
   } else {
-    if (badge)      { badge.textContent = 'NOT CONNECTED'; badge.style.background = '#1a1a1a'; badge.style.color = '#7A7873'; }
-    if (connectBtn) connectBtn.style.display = '';
-    if (syncBtn)    syncBtn.style.display = 'none';
-    if (headerBtn)  headerBtn.style.display = 'none';
+    if (badge)         { badge.textContent = 'NOT CONNECTED'; badge.style.background = '#1a1a1a'; badge.style.color = '#7A7873'; }
+    if (connectBtn)    connectBtn.style.display = '';
+    if (syncBtn)       syncBtn.style.display = 'none';
+    if (disconnectBtn) disconnectBtn.style.display = 'none';
+    if (headerBtn)     headerBtn.style.display = 'none';
+  }
+}
+
+async function ytDisconnect() {
+  if (!confirm('Disconnect YouTube account? You can reconnect at any time.')) return;
+  try {
+    await fetch('/api/youtube-auth?action=disconnect');
+    _updateYtUI(false);
+  } catch(e) {
+    alert('Could not disconnect — try again.');
   }
 }
 
