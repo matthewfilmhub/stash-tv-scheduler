@@ -837,42 +837,6 @@ html{font-size:16px;}
   .t-block{break-inside:avoid;}
 }
 
-/* ════ AUTH / LOGIN SCREEN ════ */
-#login-screen {
-  position: fixed; inset: 0; z-index: 9999;
-  background: #0c0c0a;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Inter', -apple-system, sans-serif;
-}
-.login-box {
-  width: 340px; padding: 40px 36px 36px;
-  background: #141412; border: 1px solid #2C2A27; border-radius: 12px;
-  display: flex; flex-direction: column; align-items: center; gap: 0;
-}
-.login-logo { margin-bottom: 6px; }
-.login-logo-stash { font-size: 22px; font-weight: 700; color: #EDE8DF; letter-spacing: -0.02em; }
-.login-logo-sub   { font-size: 11px; color: #7A7873; text-align: center; margin-bottom: 28px; margin-top: 2px; }
-.login-label { width: 100%; font-size: 11px; font-weight: 600; color: #7A7873; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
-.login-input {
-  width: 100%; box-sizing: border-box;
-  background: #1A1917; border: 1px solid #2C2A27; border-radius: 7px;
-  color: #EDE8DF; font-size: 15px; font-family: inherit;
-  padding: 11px 14px; outline: none; letter-spacing: 0.08em;
-  transition: border-color 0.15s;
-}
-.login-input:focus { border-color: #C8A96E; }
-.login-input.error { border-color: #f87171; }
-.login-btn {
-  width: 100%; margin-top: 14px;
-  background: #C8A96E; color: #0c0c0a; border: none;
-  border-radius: 7px; font-size: 14px; font-weight: 700;
-  padding: 12px; cursor: pointer; font-family: inherit;
-  transition: opacity 0.15s;
-}
-.login-btn:hover { opacity: 0.88; }
-.login-btn:disabled { opacity: 0.5; cursor: default; }
-.login-error { margin-top: 10px; font-size: 12px; color: #f87171; min-height: 16px; text-align: center; }
-
 /* ════ WEEKLY BRIEFING CSS ════ */
 #briefing-panel {
   background: #1A1917; border-bottom: 1px solid #2C2A27;
@@ -1033,22 +997,6 @@ html{font-size:16px;}
 </style>
 </head>
 <body>
-
-<!-- ══════════════ LOGIN SCREEN ══════════════ -->
-<div id="login-screen">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="login-logo-stash">stash</div>
-    </div>
-    <div class="login-logo-sub">Content Tools · Internal Access</div>
-    <div class="login-label">Access Code</div>
-    <input id="login-passcode" class="login-input" type="password"
-      placeholder="••••••••" autocomplete="current-password"
-      onkeydown="if(event.key==='Enter') submitLogin(event)" />
-    <div class="login-error" id="login-error"></div>
-    <button class="login-btn" id="login-btn" onclick="submitLogin(event)">Continue</button>
-  </div>
-</div>
 
 <nav class="top-nav">
   <div class="top-nav-brand">
@@ -3288,60 +3236,6 @@ function loadDemo() {
 /* ════ YOUTUBE SYNC JS ════ */
 
 // Check on load whether YouTube is connected and update UI
-/* ════ AUTH ════ */
-const AUTH_KEY = 'stash_auth_token';
-
-(async function checkAuth() {
-  const screen = document.getElementById('login-screen');
-  try {
-    const stored = localStorage.getItem(AUTH_KEY);
-    const url = stored ? `/api/auth?token=${encodeURIComponent(stored)}` : '/api/auth?token=';
-    const resp = await fetch(url);
-    const data = await resp.json();
-    if (data.ok) {
-      // Authed (or no passcode configured) — hide login screen
-      screen.style.display = 'none';
-      return;
-    }
-  } catch(e) { /* network error — fall through to show login */ }
-  // Show login screen, hide everything else until authenticated
-  screen.style.display = 'flex';
-})();
-
-async function submitLogin(e) {
-  e.preventDefault();
-  const input = document.getElementById('login-passcode');
-  const errEl = document.getElementById('login-error');
-  const btn   = document.getElementById('login-btn');
-  const passcode = input.value.trim();
-  if (!passcode) return;
-
-  btn.disabled = true;
-  errEl.textContent = '';
-  input.classList.remove('error');
-
-  try {
-    const resp = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passcode }),
-    });
-    const data = await resp.json();
-    if (data.ok) {
-      localStorage.setItem(AUTH_KEY, data.token);
-      document.getElementById('login-screen').style.display = 'none';
-      input.value = '';
-    } else {
-      errEl.textContent = 'Incorrect access code. Try again.';
-      input.classList.add('error');
-      input.select();
-    }
-  } catch(e) {
-    errEl.textContent = 'Could not reach server. Check your connection.';
-  }
-  btn.disabled = false;
-}
-
 (async function initYouTubeUI() {
   // Handle OAuth redirect results
   const params = new URLSearchParams(window.location.search);

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stash TV — Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0c0c0a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #EDE8DF;
+  }
+  .box {
+    width: 340px;
+    background: #141412;
+    border: 1px solid #2C2A27;
+    border-radius: 12px;
+    padding: 40px 36px 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .brand { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: #EDE8DF; }
+  .sub   { font-size: 11px; color: #7A7873; margin-top: 3px; margin-bottom: 32px; }
+  .label {
+    width: 100%;
+    font-size: 11px;
+    font-weight: 600;
+    color: #7A7873;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .input {
+    width: 100%;
+    background: #1A1917;
+    border: 1px solid #2C2A27;
+    border-radius: 7px;
+    color: #EDE8DF;
+    font-size: 15px;
+    font-family: inherit;
+    padding: 11px 14px;
+    outline: none;
+    letter-spacing: 0.08em;
+    transition: border-color 0.15s;
+  }
+  .input:focus        { border-color: #C8A96E; }
+  .input.shake        { border-color: #f87171; animation: shake 0.3s ease; }
+  .btn {
+    width: 100%;
+    margin-top: 14px;
+    background: #C8A96E;
+    color: #0c0c0a;
+    border: none;
+    border-radius: 7px;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .btn:hover    { opacity: 0.88; }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  .error {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #f87171;
+    min-height: 16px;
+    text-align: center;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25%       { transform: translateX(-6px); }
+    75%       { transform: translateX(6px); }
+  }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="brand">stash</div>
+  <div class="sub">Content Tools · Internal Access</div>
+  <div class="label">Access Code</div>
+  <input id="passcode" class="input" type="password"
+    placeholder="••••••••"
+    autocomplete="current-password"
+    autofocus
+    onkeydown="if(event.key==='Enter') login()" />
+  <div class="error" id="error"></div>
+  <button class="btn" id="btn" onclick="login()">Continue</button>
+</div>
+
+<script>
+async function login() {
+  const input  = document.getElementById('passcode');
+  const errEl  = document.getElementById('error');
+  const btn    = document.getElementById('btn');
+  const passcode = input.value.trim();
+  if (!passcode) return;
+
+  btn.disabled = true;
+  errEl.textContent = '';
+  input.classList.remove('shake');
+
+  try {
+    const resp = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ passcode }),
+    });
+    const data = await resp.json();
+
+    if (data.ok) {
+      window.location.href = '/';
+    } else {
+      errEl.textContent = 'Incorrect access code. Try again.';
+      input.classList.add('shake');
+      input.value = '';
+      input.focus();
+    }
+  } catch (e) {
+    errEl.textContent = 'Could not reach server. Check your connection.';
+  }
+
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
