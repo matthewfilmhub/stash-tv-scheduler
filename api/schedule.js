@@ -66,6 +66,32 @@ export default async function handler(req, res) {
         addRandomSuffix: false,
       });
 
+      // Also save a CIC lookup blob so YouTube sync can use it as fallback
+      const norm = t => (t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cicByTitle = {};
+      for (const item of body.items) {
+        const key = norm(item.title);
+        if (key) {
+          cicByTitle[key] = {
+            hasCIC:          !!item.hasCIC,
+            hasMusicCIC:     false,
+            isAgeRestricted: !!item.isAgeRestricted,
+            title:           item.title,
+          };
+        }
+      }
+      await put('csv-cic.json', JSON.stringify({
+        byVideoId: {},
+        byTitle:   cicByTitle,
+        rowCount:  body.items.length,
+        syncedAt:  new Date().toISOString(),
+        source:    'csv',
+      }), {
+        access: 'public',
+        contentType: 'application/json',
+        addRandomSuffix: false,
+      });
+
       return res.status(200).json({ ok: true, message: 'Schedule saved' });
     } catch (err) {
       console.error('POST error:', err);

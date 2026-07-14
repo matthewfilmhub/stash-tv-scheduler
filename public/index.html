@@ -837,6 +837,42 @@ html{font-size:16px;}
   .t-block{break-inside:avoid;}
 }
 
+/* ════ AUTH / LOGIN SCREEN ════ */
+#login-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #0c0c0a;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+.login-box {
+  width: 340px; padding: 40px 36px 36px;
+  background: #141412; border: 1px solid #2C2A27; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+}
+.login-logo { margin-bottom: 6px; }
+.login-logo-stash { font-size: 22px; font-weight: 700; color: #EDE8DF; letter-spacing: -0.02em; }
+.login-logo-sub   { font-size: 11px; color: #7A7873; text-align: center; margin-bottom: 28px; margin-top: 2px; }
+.login-label { width: 100%; font-size: 11px; font-weight: 600; color: #7A7873; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+.login-input {
+  width: 100%; box-sizing: border-box;
+  background: #1A1917; border: 1px solid #2C2A27; border-radius: 7px;
+  color: #EDE8DF; font-size: 15px; font-family: inherit;
+  padding: 11px 14px; outline: none; letter-spacing: 0.08em;
+  transition: border-color 0.15s;
+}
+.login-input:focus { border-color: #C8A96E; }
+.login-input.error { border-color: #f87171; }
+.login-btn {
+  width: 100%; margin-top: 14px;
+  background: #C8A96E; color: #0c0c0a; border: none;
+  border-radius: 7px; font-size: 14px; font-weight: 700;
+  padding: 12px; cursor: pointer; font-family: inherit;
+  transition: opacity 0.15s;
+}
+.login-btn:hover { opacity: 0.88; }
+.login-btn:disabled { opacity: 0.5; cursor: default; }
+.login-error { margin-top: 10px; font-size: 12px; color: #f87171; min-height: 16px; text-align: center; }
+
 /* ════ WEEKLY BRIEFING CSS ════ */
 #briefing-panel {
   background: #1A1917; border-bottom: 1px solid #2C2A27;
@@ -998,6 +1034,22 @@ html{font-size:16px;}
 </head>
 <body>
 
+<!-- ══════════════ LOGIN SCREEN ══════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-stash">stash</div>
+    </div>
+    <div class="login-logo-sub">Content Tools · Internal Access</div>
+    <div class="login-label">Access Code</div>
+    <input id="login-passcode" class="login-input" type="password"
+      placeholder="••••••••" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter') submitLogin(event)" />
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn" id="login-btn" onclick="submitLogin(event)">Continue</button>
+  </div>
+</div>
+
 <nav class="top-nav">
   <div class="top-nav-brand">
     <svg width="20" height="13" viewBox="0 0 44 30" fill="none">
@@ -1058,6 +1110,37 @@ html{font-size:16px;}
     <button class="demo-btn" onclick="loadDemo()">▶ Preview with Demo Data</button>
   </div>
 
+  <!-- YouTube Live Sync card -->
+  <div class="upload-card" id="yt-connect-card" style="margin-top:16px;border-color:#FF0000;border-width:1px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <svg width="24" height="17" viewBox="0 0 24 17" fill="none"><path d="M23.5 2.7s-.2-1.6-1-2.3C21.5.1 20.3 0 19.8 0 16.5-.1 12 0 12 0S7.5-.1 4.2.4c-.6.1-1.7.2-2.7 1.1C.7 2.1.5 3.7.5 3.7S.3 5.6.3 7.5v1.8c0 1.9.2 3.8.2 3.8s.2 1.6 1 2.3c1 .9 2.3.9 2.9 1C6.3 16.6 12 16.6 12 16.6s4.5 0 7.8-.5c.6-.1 1.7-.2 2.7-1.1.8-.7 1-2.3 1-2.3s.2-1.9.2-3.8V7.5C23.7 5.6 23.5 3.7 23.5 2.7zM9.7 11.5V4.7l6.6 3.4-6.6 3.4z" fill="#FF0000"/></svg>
+      <span style="font-size:15px;font-weight:700;color:var(--white)">Live YouTube Sync</span>
+      <span id="yt-connect-badge" style="font-size:10px;padding:2px 7px;border-radius:10px;background:#1a1a1a;color:#7A7873;font-weight:600;margin-left:4px">NOT CONNECTED</span>
+    </div>
+    <p style="color:var(--gray);font-size:13px;margin-bottom:14px;">Connect your YouTube account to sync draft, scheduled, and published video data live — no CSV uploads needed. Data refreshes in ~30 seconds whenever you click Sync.</p>
+    <div id="yt-connect-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-outline" id="yt-connect-btn" onclick="ytConnect()" style="border-color:#FF0000;color:#FF0000;">🔗 Connect YouTube Account</button>
+      <button class="btn btn-ghost" id="yt-sync-btn" onclick="ytSync()" style="display:none;">↻ Sync from YouTube</button>
+    </div>
+    <div id="yt-sync-status" style="margin-top:10px;font-size:12px;color:var(--dim);display:none;"></div>
+    <div style="margin-top:12px;font-size:11px;color:#5a5652;">ℹ️ Connect Notion below to sync Copyright Claim (CIC) flags automatically. Without it, CIC titles show as clean drafts.</div>
+  </div>
+
+  <!-- Notion CIC Sync card -->
+  <div class="upload-card" id="notion-connect-card" style="margin-top:16px;border-color:#4b4b4b;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect width="20" height="20" rx="3" fill="#fff"/><text x="3" y="14" font-size="8" font-family="sans-serif" font-weight="700" fill="#000">CIC</text></svg>
+      <span style="font-size:15px;font-weight:700;color:var(--white)">Notion CIC Sync</span>
+      <span id="notion-sync-badge" style="font-size:10px;padding:2px 7px;border-radius:10px;background:#1a1a1a;color:#7A7873;font-weight:600;margin-left:4px">NOT CONFIGURED</span>
+    </div>
+    <p style="color:var(--gray);font-size:13px;margin-bottom:14px;">Syncs Copyright Claim flags from your Notion HIT tracker. Requires a <code style="background:#1a1a1a;padding:1px 4px;border-radius:3px;">NOTION_TOKEN</code> env var in Vercel. Once configured, CIC data syncs automatically each time you run YouTube Sync.</p>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-ghost" id="notion-sync-btn" onclick="notionSync()" style="display:none;">↻ Sync Notion CIC</button>
+    </div>
+    <div id="notion-sync-status" style="margin-top:10px;font-size:12px;color:var(--dim);display:none;"></div>
+    <div style="margin-top:12px;font-size:11px;color:#5a5652;">Setup: create a Notion internal integration at notion.so/my-integrations → share the HIT tracker database with it → add the token as <code style="background:#111;padding:1px 4px;border-radius:3px;">NOTION_TOKEN</code> in Vercel environment variables.</div>
+  </div>
+
   <!-- Loading indicator (shown while fetching from API) -->
   <div id="cloud-loading" style="display:none;text-align:center;margin-top:24px;color:var(--gray);font-size:14px;">
     <div style="font-size:28px;margin-bottom:8px;">⏳</div>
@@ -1083,6 +1166,8 @@ html{font-size:16px;}
     </div>
     <div class="header-actions">
       <span id="cloud-status" style="font-size:11px;color:var(--dim);margin-right:6px;"></span>
+      <span id="yt-sync-indicator" style="display:none;font-size:11px;color:#7A7873;margin-right:4px;"></span>
+      <button class="btn btn-ghost" id="yt-header-sync-btn" style="display:none;" onclick="ytSync()">↻ YouTube Sync</button>
       <button class="btn btn-ghost" onclick="reupload()">↑ New CSV</button>
       <button class="btn btn-ghost" onclick="openBriefing()" id="briefing-btn">📤 Weekly Briefing</button>
       <button class="btn btn-outline" onclick="exportSnapshot()">⬇ Export Snapshot</button>
@@ -3200,6 +3285,218 @@ function loadDemo() {
   }
 })();
 
+/* ════ YOUTUBE SYNC JS ════ */
+
+// Check on load whether YouTube is connected and update UI
+/* ════ AUTH ════ */
+const AUTH_KEY = 'stash_auth_token';
+
+(async function checkAuth() {
+  const screen = document.getElementById('login-screen');
+  try {
+    const stored = localStorage.getItem(AUTH_KEY);
+    const url = stored ? `/api/auth?token=${encodeURIComponent(stored)}` : '/api/auth?token=';
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.ok) {
+      // Authed (or no passcode configured) — hide login screen
+      screen.style.display = 'none';
+      return;
+    }
+  } catch(e) { /* network error — fall through to show login */ }
+  // Show login screen, hide everything else until authenticated
+  screen.style.display = 'flex';
+})();
+
+async function submitLogin(e) {
+  e.preventDefault();
+  const input = document.getElementById('login-passcode');
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('login-btn');
+  const passcode = input.value.trim();
+  if (!passcode) return;
+
+  btn.disabled = true;
+  errEl.textContent = '';
+  input.classList.remove('error');
+
+  try {
+    const resp = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      localStorage.setItem(AUTH_KEY, data.token);
+      document.getElementById('login-screen').style.display = 'none';
+      input.value = '';
+    } else {
+      errEl.textContent = 'Incorrect access code. Try again.';
+      input.classList.add('error');
+      input.select();
+    }
+  } catch(e) {
+    errEl.textContent = 'Could not reach server. Check your connection.';
+  }
+  btn.disabled = false;
+}
+
+(async function initYouTubeUI() {
+  // Handle OAuth redirect results
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('yt_connected')) {
+    window.history.replaceState({}, '', '/');
+    // Auto-trigger sync after successful OAuth
+    setTimeout(() => ytSync(), 500);
+    return;
+  }
+  if (params.get('yt_error')) {
+    const errMsg = decodeURIComponent(params.get('yt_error'));
+    window.history.replaceState({}, '', '/');
+    alert('YouTube connection error: ' + errMsg);
+  }
+
+  // Check connection status
+  try {
+    const resp = await fetch('/api/youtube-auth?action=status');
+    const { connected } = await resp.json();
+    _updateYtUI(connected);
+  } catch(e) { /* offline */ }
+
+  // Check Notion CIC sync status
+  try {
+    const nr = await fetch('/api/notion-sync');
+    if (nr.ok) {
+      const nj = await nr.json();
+      const badge = document.getElementById('notion-sync-badge');
+      const btn   = document.getElementById('notion-sync-btn');
+      if (nj.configured) {
+        if (badge) {
+          badge.textContent = nj.lastSync ? `${nj.rowCount || 0} rows synced` : 'Ready to sync';
+          badge.style.color = '#4ade80';
+        }
+        if (btn) btn.style.display = '';
+      }
+    }
+  } catch(e) { /* notion status unavailable */ }
+})();
+
+function _updateYtUI(connected) {
+  const badge     = document.getElementById('yt-connect-badge');
+  const connectBtn = document.getElementById('yt-connect-btn');
+  const syncBtn   = document.getElementById('yt-sync-btn');
+  const headerBtn = document.getElementById('yt-header-sync-btn');
+  const indicator = document.getElementById('yt-sync-indicator');
+
+  if (connected) {
+    if (badge)      { badge.textContent = 'CONNECTED'; badge.style.background = '#0f2e15'; badge.style.color = '#4ade80'; }
+    if (connectBtn) connectBtn.style.display = 'none';
+    if (syncBtn)    syncBtn.style.display = '';
+    if (headerBtn)  headerBtn.style.display = '';
+    if (indicator)  indicator.style.display = '';
+  } else {
+    if (badge)      { badge.textContent = 'NOT CONNECTED'; badge.style.background = '#1a1a1a'; badge.style.color = '#7A7873'; }
+    if (connectBtn) connectBtn.style.display = '';
+    if (syncBtn)    syncBtn.style.display = 'none';
+    if (headerBtn)  headerBtn.style.display = 'none';
+  }
+}
+
+async function ytConnect() {
+  try {
+    const resp = await fetch('/api/youtube-auth?action=url');
+    const { url, error } = await resp.json();
+    if (error) { alert('Setup error: ' + error); return; }
+    window.location.href = url;
+  } catch(e) {
+    alert('Could not reach server — check your connection.');
+  }
+}
+
+async function ytSync() {
+  const statusEl  = document.getElementById('yt-sync-status');
+  const indicator = document.getElementById('yt-sync-indicator');
+  const btns = [document.getElementById('yt-sync-btn'), document.getElementById('yt-header-sync-btn')];
+
+  function setStatus(msg, color) {
+    if (statusEl)  { statusEl.textContent = msg; statusEl.style.display = ''; statusEl.style.color = color || 'var(--dim)'; }
+    if (indicator) { indicator.textContent = msg; indicator.style.color = color || '#7A7873'; }
+  }
+
+  btns.forEach(b => { if(b) b.disabled = true; });
+
+  // ── Step 1: Notion CIC sync (best-effort, only if configured) ────────
+  const notionBadge = document.getElementById('notion-sync-badge');
+  const notionConfigured = notionBadge && notionBadge.textContent.trim() !== 'NOT CONFIGURED';
+  if (notionConfigured) {
+    setStatus('↻ Syncing Notion CIC data…', '#7A7873');
+    try {
+      const nr = await fetch('/api/notion-sync', { method: 'POST' });
+      const nj = await nr.json();
+      if (nj.ok) {
+        if (notionBadge) { notionBadge.textContent = `${nj.rowCount} rows synced`; notionBadge.style.color = '#4ade80'; }
+        const nStatus = document.getElementById('notion-sync-status');
+        if (nStatus) { nStatus.textContent = `✓ ${nj.rowCount} Notion rows synced`; nStatus.style.display = ''; nStatus.style.color = '#4ade80'; }
+      }
+    } catch(e) { /* silently skip if Notion unavailable */ }
+  }
+
+  // ── Step 2: YouTube sync ──────────────────────────────────────────────
+  setStatus('↻ Syncing from YouTube… (this takes ~30 seconds)', '#7A7873');
+
+  try {
+    const resp = await fetch('/api/youtube-sync', { method: 'POST' });
+    const json = await resp.json();
+
+    if (json.ok) {
+      const ts = new Date(json.syncedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      setStatus(`✓ Synced ${json.itemCount} videos across ${json.channelCount} channels at ${ts}`, '#4ade80');
+      // Reload schedule data from cloud
+      setTimeout(async () => {
+        const loaded = await loadFromAPI();
+        if (loaded && document.getElementById('upload-screen').style.display !== 'none') {
+          document.getElementById('upload-screen').style.display = 'none';
+          document.getElementById('app-screen').style.display = '';
+        }
+      }, 500);
+    } else if (json.notAuthenticated) {
+      setStatus('✗ Not connected — reconnect YouTube', '#f87171');
+      _updateYtUI(false);
+    } else {
+      setStatus('✗ Sync failed: ' + (json.error || 'Unknown error'), '#f87171');
+    }
+  } catch(e) {
+    setStatus('✗ Could not reach server', '#f87171');
+  }
+
+  btns.forEach(b => { if(b) b.disabled = false; });
+}
+
+async function notionSync() {
+  const statusEl = document.getElementById('notion-sync-status');
+  const badge    = document.getElementById('notion-sync-badge');
+  const btn      = document.getElementById('notion-sync-btn');
+  function setNStatus(msg, color) {
+    if (statusEl) { statusEl.textContent = msg; statusEl.style.display = ''; statusEl.style.color = color || 'var(--dim)'; }
+  }
+  if (btn) btn.disabled = true;
+  setNStatus('↻ Syncing Notion…', '#7A7873');
+  try {
+    const resp = await fetch('/api/notion-sync', { method: 'POST' });
+    const json = await resp.json();
+    if (json.ok) {
+      setNStatus(`✓ ${json.rowCount} rows synced`, '#4ade80');
+      if (badge) { badge.textContent = `${json.rowCount} rows synced`; badge.style.color = '#4ade80'; }
+    } else {
+      setNStatus('✗ ' + (json.error || 'Sync failed'), '#f87171');
+    }
+  } catch(e) {
+    setNStatus('✗ Could not reach server', '#f87171');
+  }
+  if (btn) btn.disabled = false;
+}
+
 /* ════ WEEKLY BRIEFING JS ════ */
 // Cadence lookup from Notion "Stash TV Channel Delivery Cadence" database
 // Goal Weekly Delivery Cadence per channel pattern (lowercase match)
@@ -3286,14 +3583,14 @@ function _scheduledOutDate(channel) {
 }
 
 function _draftCounts(channel) {
-  let ready = 0, blocked = 0;
+  let ready = 0;
   (APP.items || []).forEach(item => {
     if (item.channel !== channel) return;
-    if (item.isAgeRestricted) return; // exclude 18+ titles — not viable for publishing
-    if (item.status === 'draft') ready++;
-    else if (item.status === 'draft_blocked' || item.status === 'transcoding') blocked++;
+    if (item.isAgeRestricted) return;   // exclude 18+ titles
+    if (item.hasCIC) return;            // exclude copyright ID claim titles
+    if (item.status === 'draft' || item.status === 'transcoding') ready++;
   });
-  return { ready, blocked };
+  return { ready };
 }
 
 function openBriefing() {
@@ -3345,10 +3642,10 @@ function _renderBriefingTable() {
     const notes   = cfg.notes || '';
     const tech    = _effectiveTech(ch);
     const scheduledOut = _scheduledOutDate(ch);
-    const { ready, blocked } = _draftCounts(ch);
+    const { ready } = _draftCounts(ch);
     const outStr = scheduledOut ? scheduledOut : '<span class="briefing-stat-dim">—</span>';
-    const draftStr = ready > 0 || blocked > 0
-      ? `<span class="briefing-stat">${ready}</span>${blocked > 0 ? `<span class="briefing-stat-dim"> (+${blocked} blocked)</span>` : ''}`
+    const draftStr = ready > 0
+      ? `<span class="briefing-stat">${ready}</span>`
       : `<span class="briefing-stat-dim">0</span>`;
     const isNewGroup = tech !== lastTech;
     lastTech = tech;
@@ -3418,8 +3715,8 @@ function _generateBriefingMessage() {
       const cadence = cfg.cadence != null ? cfg.cadence : _cadenceFromNotion(ch);
       const notes = (cfg.notes || '').trim();
       const scheduledOut = _scheduledOutDate(ch);
-      const { ready, blocked } = _draftCounts(ch);
-      const totalDraft = ready + blocked;
+      const { ready } = _draftCounts(ch);
+      const totalDraft = ready;
       const label = ch.replace(/^Stash - /i,'').replace(/^Stash /i,'').replace(/ on YouTube$/i,'').replace(/ \(.*\)$/,'').trim();
       lines.push(`\n* ${label}:`);
       lines.push(`Cadence: ${cadence}x titles a week`);
