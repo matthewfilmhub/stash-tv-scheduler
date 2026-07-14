@@ -1114,6 +1114,7 @@ html{font-size:16px;}
         <table class="briefing-table" id="briefing-table">
           <thead>
             <tr>
+              <th>HIT Tech</th>
               <th>Channel</th>
               <th title="Titles/week goal">Cadence</th>
               <th>Scheduled out to</th>
@@ -3214,7 +3215,39 @@ const BRIEFING_NOTION_CADENCE = [
 ];
 // Everything not matched above defaults to 4
 
-// Per-channel state: { [channelName]: { cadence, notes } }
+// HIT Tech mapping from Notion — channels grouped by responsible tech (name patterns, lowercase)
+// Source: Stash TV Channel Delivery Cadence DB (notion user IDs resolved)
+// User 14df8a51 = Laura Lavinia | User e1bb0125 = not in workspace (former member — update below)
+const BRIEFING_TECH_MAP = [
+  // Laura Lavinia (14df8a51-4c01-4f7b-bc9c-2a9b81a49e0b)
+  { pattern: 'free documentaries',              tech: 'Laura Lavinia' },
+  { pattern: 'thrills and chills',              tech: 'Laura Lavinia' },
+  { pattern: 'sci-fi cinema',                   tech: 'Laura Lavinia' },
+  { pattern: 'bigfoot',                         tech: 'Laura Lavinia' },
+  { pattern: 'stash - free movies',             tech: 'Laura Lavinia' },
+  { pattern: 'en français',                     tech: 'Laura Lavinia' },
+  { pattern: 'en francais',                     tech: 'Laura Lavinia' },
+  { pattern: 'watch free movies all day',       tech: 'Laura Lavinia' },
+  { pattern: 'free movies catalog',             tech: 'Laura Lavinia' },
+  { pattern: 'free movie catalog',              tech: 'Laura Lavinia' },
+  { pattern: 'watch free movies digest',        tech: 'Laura Lavinia' },
+  // User e1bb0125 (not found in workspace — update this name if you know who it is)
+  { pattern: 'stash movies',                    tech: '—' },
+  { pattern: 'espanol',                         tech: '—' },
+  { pattern: 'español',                         tech: '—' },
+  { pattern: 'black stories',                   tech: '—' },
+  { pattern: 'war & military',                  tech: '—' },
+  { pattern: 'war and military',                tech: '—' },
+  { pattern: 'stash - action',                  tech: '—' },
+  { pattern: 'suspense',                        tech: '—' },
+  { pattern: 'lgbtq',                           tech: '—' },
+  { pattern: 'deutsch',                         tech: '—' },
+  { pattern: 'watch free movies every day',     tech: '—' },
+  { pattern: 'free docs every day',             tech: '—' },
+  { pattern: 'free docs all day',               tech: '—' },
+];
+
+// Per-channel state: { [channelName]: { cadence, notes, tech } }
 let briefingConfig = {};
 let briefingLoaded = false;
 
@@ -3224,6 +3257,14 @@ function _cadenceFromNotion(channelName) {
     if (lc.includes(pattern)) return cadence;
   }
   return 4;
+}
+
+function _techForChannel(channelName) {
+  const lc = channelName.toLowerCase();
+  for (const {pattern, tech} of BRIEFING_TECH_MAP) {
+    if (lc.includes(pattern)) return tech;
+  }
+  return '—';
 }
 
 function _scheduledOutDate(channel) {
@@ -3288,17 +3329,33 @@ function _renderBriefingTable() {
   const tbody = document.getElementById('briefing-tbody');
   if (!tbody) return;
   const channels = APP.channels || [];
-  tbody.innerHTML = channels.map(ch => {
+
+  // Sort channels by tech name, then alphabetically within each group
+  const sorted = [...channels].sort((a, b) => {
+    const ta = _effectiveTech(a), tb = _effectiveTech(b);
+    if (ta !== tb) return ta.localeCompare(tb);
+    return a.localeCompare(b);
+  });
+
+  let lastTech = null;
+  tbody.innerHTML = sorted.map(ch => {
     const cfg = briefingConfig[ch] || {};
     const cadence = cfg.cadence != null ? cfg.cadence : _cadenceFromNotion(ch);
     const notes   = cfg.notes || '';
+    const tech    = _effectiveTech(ch);
     const scheduledOut = _scheduledOutDate(ch);
     const { ready, blocked } = _draftCounts(ch);
     const outStr = scheduledOut ? scheduledOut : '<span class="briefing-stat-dim">—</span>';
     const draftStr = ready > 0 || blocked > 0
       ? `<span class="briefing-stat">${ready}</span>${blocked > 0 ? `<span class="briefing-stat-dim"> (+${blocked} blocked)</span>` : ''}`
       : `<span class="briefing-stat-dim">0</span>`;
-    return `<tr>
+    const isNewGroup = tech !== lastTech;
+    lastTech = tech;
+    const techCell = isNewGroup
+      ? `<td class="briefing-ch-name" rowspan="1" style="color:var(--gold);font-weight:700">${tech}</td>`
+      : `<td style="color:var(--dim);font-size:10px">↑</td>`;
+    return `<tr style="${isNewGroup && lastTech !== tech ? 'border-top:2px solid #2C2A27' : ''}">
+      ${techCell}
       <td class="briefing-ch-name">${ch}</td>
       <td><input class="briefing-input briefing-cadence-input" type="number" min="1" max="20" value="${cadence}" data-ch="${ch}" data-field="cadence" onchange="_briefingFieldChange(this)"></td>
       <td>${outStr}</td>
@@ -3306,6 +3363,10 @@ function _renderBriefingTable() {
       <td><input class="briefing-input" type="text" placeholder="Optional note…" value="${notes.replace(/"/g,'&quot;')}" data-ch="${ch}" data-field="notes" oninput="_briefingFieldChange(this)"></td>
     </tr>`;
   }).join('');
+}
+
+function _effectiveTech(ch) {
+  return (briefingConfig[ch] || {}).tech || _techForChannel(ch);
 }
 
 function _briefingFieldChange(el) {
@@ -3336,21 +3397,37 @@ function _generateBriefingMessage() {
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   const channels = APP.channels || [];
-  let lines = [`*📋 Weekly Channel Briefing — ${dateStr}*\n`];
+
+  // Group channels by tech, sorted alphabetically within each group
+  const groups = {};
   channels.forEach(ch => {
-    const cfg = briefingConfig[ch] || {};
-    const cadence = cfg.cadence != null ? cfg.cadence : _cadenceFromNotion(ch);
-    const notes = (cfg.notes || '').trim();
-    const scheduledOut = _scheduledOutDate(ch);
-    const { ready, blocked } = _draftCounts(ch);
-    const totalDraft = ready + blocked;
-    // Short channel label
-    const label = ch.replace(/^Stash - /i,'').replace(/^Stash /i,'').replace(/ on YouTube$/i,'').replace(/ \(.*\)$/,'').trim();
-    lines.push(`*${label}:*`);
-    lines.push(`Cadence: ${cadence}x titles a week`);
-    lines.push(`Date Channel scheduled out to: ${scheduledOut || 'TBD'}`);
-    const draftLine = notes ? `# of draft titles able to publish: ${totalDraft} (${notes})` : `# of draft titles able to publish: ${totalDraft}`;
-    lines.push(draftLine);
+    const tech = _effectiveTech(ch);
+    if (!groups[tech]) groups[tech] = [];
+    groups[tech].push(ch);
+  });
+  Object.values(groups).forEach(arr => arr.sort((a, b) => a.localeCompare(b)));
+  const techOrder = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+
+  let lines = [`*📋 Weekly Channel Briefing — ${dateStr}*\n`];
+
+  techOrder.forEach(tech => {
+    lines.push(`*👤 ${tech}*`);
+    groups[tech].forEach(ch => {
+      const cfg = briefingConfig[ch] || {};
+      const cadence = cfg.cadence != null ? cfg.cadence : _cadenceFromNotion(ch);
+      const notes = (cfg.notes || '').trim();
+      const scheduledOut = _scheduledOutDate(ch);
+      const { ready, blocked } = _draftCounts(ch);
+      const totalDraft = ready + blocked;
+      const label = ch.replace(/^Stash - /i,'').replace(/^Stash /i,'').replace(/ on YouTube$/i,'').replace(/ \(.*\)$/,'').trim();
+      lines.push(`\n* ${label}:`);
+      lines.push(`Cadence: ${cadence}x titles a week`);
+      lines.push(`Date Channel scheduled out to: ${scheduledOut || 'TBD'}`);
+      const draftLine = notes
+        ? `# of draft titles able to publish: ${totalDraft} (${notes})`
+        : `# of draft titles able to publish: ${totalDraft}`;
+      lines.push(draftLine);
+    });
     lines.push('');
   });
   return lines.join('\n');
