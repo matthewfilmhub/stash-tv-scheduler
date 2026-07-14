@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       const webhookUrl = process.env.SLACK_WEBHOOK_URL;
       // Option B: Slack Bot Token + channel ID (set SLACK_BOT_TOKEN + SLACK_CHANNEL_ID)
       const botToken = process.env.SLACK_BOT_TOKEN;
-      const channelId = process.env.SLACK_CHANNEL_ID || 'CUJM4DQP6'; // #ops-channels default
+      const channelId = process.env.SLACK_CHANNEL_ID || 'C02A4D0RBPF'; // #filmfeed-stashtv-youtube default
 
       if (!webhookUrl && !botToken) {
         return res.status(503).json({
