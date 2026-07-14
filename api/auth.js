@@ -3,7 +3,7 @@
 import crypto from 'crypto';
 
 const COOKIE = 'stash_session';
-const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+const MAX_AGE = 60 * 60 * 24; // 24 hours
 
 function makeToken(passcode) {
   const secret = process.env.SITE_AUTH_SECRET || process.env.UPLOAD_KEY || 'stash-auth-default';

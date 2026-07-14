@@ -1,7 +1,18 @@
 import { put, list } from '@vercel/blob';
 
-const BLOB_PROGRESS = 'territory-progress.json';
+// Separate blobs so each POST writes directly — no read-modify-write needed.
+const BLOB_PROGRESS = 'territory-progress.json';  // stores { completed }
+const BLOB_MATCHES  = 'territory-matches.json';   // stores { matchSelections }
 const BLOB_REPORT   = 'territory-report.json';
+
+async function readBlob(key) {
+  try {
+    const { blobs } = await list({ prefix: key });
+    if (!blobs.length) return null;
+    const resp = await fetch(blobs[0].url);
+    return await resp.json();
+  } catch { return null; }
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,11 +26,20 @@ export default async function handler(req, res) {
     const type = req.query?.type || 'progress';
 
     try {
-      const blobPath = type === 'report' ? BLOB_REPORT : BLOB_PROGRESS;
-      const { blobs } = await list({ prefix: blobPath });
-      if (!blobs.length) return res.status(200).json({ ok: true, data: null });
-      const response = await fetch(blobs[0].url);
-      const data = await response.json();
+      if (type === 'report') {
+        const data = await readBlob(BLOB_REPORT);
+        return res.status(200).json({ ok: true, data });
+      }
+
+      // Fetch progress + matches in parallel and merge into one response
+      const [progressData, matchesData] = await Promise.all([
+        readBlob(BLOB_PROGRESS),
+        readBlob(BLOB_MATCHES),
+      ]);
+      const data = (progressData || matchesData) ? {
+        ...(progressData  || {}),
+        ...(matchesData   || {}),
+      } : null;
       return res.status(200).json({ ok: true, data });
     } catch (err) {
       console.error('territory GET error:', err);
@@ -34,9 +54,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: 'Invalid payload' });
     }
 
-    // Saving the full report requires the upload key (admin only)
+    // Report: requires upload key (admin only)
     if (body.reportData !== undefined) {
-      const uploadKey = req.headers['x-upload-key'];
+      const uploadKey  = req.headers['x-upload-key'];
       const expectedKey = process.env.UPLOAD_KEY;
       if (!expectedKey) {
         return res.status(500).json({ ok: false, error: 'Server misconfigured: UPLOAD_KEY not set' });
@@ -44,17 +64,11 @@ export default async function handler(req, res) {
       if (!uploadKey || uploadKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Invalid upload key' });
       }
-
       try {
-        const payload = {
+        await put(BLOB_REPORT, JSON.stringify({
           reportData: body.reportData,
           savedAt: new Date().toISOString(),
-        };
-        await put(BLOB_REPORT, JSON.stringify(payload), {
-          access: 'public',
-          contentType: 'application/json',
-          addRandomSuffix: false,
-        });
+        }), { access: 'public', contentType: 'application/json', addRandomSuffix: false });
         return res.status(200).json({ ok: true });
       } catch (err) {
         console.error('territory report POST error:', err);
@@ -62,33 +76,35 @@ export default async function handler(req, res) {
       }
     }
 
-    // Saving progress / match selections — no auth needed
-    try {
-      let existing = {};
+    // Completed checkboxes — write directly, no read needed
+    if (body.completed !== undefined) {
       try {
-        const { blobs } = await list({ prefix: BLOB_PROGRESS });
-        if (blobs.length) {
-          const r = await fetch(blobs[0].url);
-          existing = await r.json();
-        }
-      } catch (_) {}
-
-      const payload = {
-        ...existing,
-        ...(body.completed        !== undefined && { completed: body.completed }),
-        ...(body.matchSelections  !== undefined && { matchSelections: body.matchSelections }),
-        savedAt: new Date().toISOString(),
-      };
-      await put(BLOB_PROGRESS, JSON.stringify(payload), {
-        access: 'public',
-        contentType: 'application/json',
-        addRandomSuffix: false,
-      });
-      return res.status(200).json({ ok: true });
-    } catch (err) {
-      console.error('territory POST error:', err);
-      return res.status(500).json({ ok: false, error: 'Failed to save data' });
+        await put(BLOB_PROGRESS, JSON.stringify({
+          completed: body.completed,
+          savedAt: new Date().toISOString(),
+        }), { access: 'public', contentType: 'application/json', addRandomSuffix: false });
+        return res.status(200).json({ ok: true });
+      } catch (err) {
+        console.error('territory progress POST error:', err);
+        return res.status(500).json({ ok: false, error: 'Failed to save progress' });
+      }
     }
+
+    // Match selections — write directly, no read needed
+    if (body.matchSelections !== undefined) {
+      try {
+        await put(BLOB_MATCHES, JSON.stringify({
+          matchSelections: body.matchSelections,
+          savedAt: new Date().toISOString(),
+        }), { access: 'public', contentType: 'application/json', addRandomSuffix: false });
+        return res.status(200).json({ ok: true });
+      } catch (err) {
+        console.error('territory matches POST error:', err);
+        return res.status(500).json({ ok: false, error: 'Failed to save selections' });
+      }
+    }
+
+    return res.status(400).json({ ok: false, error: 'Unknown payload — expected completed, matchSelections, or reportData' });
   }
 
   return res.status(405).json({ ok: false, error: 'Method not allowed' });
