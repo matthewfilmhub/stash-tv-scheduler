@@ -837,6 +837,60 @@ html{font-size:16px;}
   .t-block{break-inside:avoid;}
 }
 
+/* ════ WEEKLY BRIEFING CSS ════ */
+#briefing-panel {
+  background: #1A1917; border-bottom: 1px solid #2C2A27;
+  padding: 20px 24px; display: none;
+}
+.briefing-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.briefing-panel-title { font-size: 15px; font-weight: 700; color: #EDE8DF; }
+.briefing-close-btn {
+  background: none; border: none; color: #7A7873; cursor: pointer;
+  font-size: 20px; line-height: 1; padding: 0 4px;
+}
+.briefing-close-btn:hover { color: #EDE8DF; }
+.briefing-table-wrap { overflow-x: auto; margin-bottom: 16px; }
+.briefing-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.briefing-table th {
+  text-align: left; padding: 6px 10px; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.05em; color: #7A7873;
+  border-bottom: 1px solid #2C2A27; white-space: nowrap;
+}
+.briefing-table td {
+  padding: 7px 10px; border-bottom: 1px solid #1E1D1B;
+  vertical-align: middle;
+}
+.briefing-table tr:hover td { background: rgba(255,255,255,0.02); }
+.briefing-ch-name { color: #EDE8DF; font-weight: 600; }
+.briefing-input {
+  background: #111; border: 1px solid #2C2A27; border-radius: 4px;
+  color: #EDE8DF; font-size: 12px; padding: 4px 7px;
+  outline: none; width: 100%;
+}
+.briefing-input:focus { border-color: #5A5652; }
+.briefing-cadence-input { width: 48px; text-align: center; }
+.briefing-stat { color: #EDE8DF; font-weight: 600; }
+.briefing-stat-dim { color: #7A7873; font-size: 11px; }
+.briefing-preview-wrap {
+  background: #111; border: 1px solid #2C2A27; border-radius: 6px;
+  padding: 14px 16px; margin-bottom: 14px; font-size: 12px;
+  white-space: pre-wrap; line-height: 1.7; color: #c0bdb9;
+  max-height: 320px; overflow-y: auto; font-family: 'Courier New', monospace;
+}
+.briefing-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.briefing-slack-status { font-size: 11px; color: #7A7873; margin-left: 4px; }
+.briefing-tabs { display: flex; gap: 2px; margin-bottom: 14px; }
+.briefing-tab {
+  padding: 5px 12px; font-size: 11px; border-radius: 4px; cursor: pointer;
+  border: 1px solid #2C2A27; background: none; color: #7A7873;
+}
+.briefing-tab.active { background: #2C2A27; color: #EDE8DF; }
+
 /* ════ PIPELINE CSS ════ */
 .tab-pipeline {
   --pl-bg:      #0F0F0D;
@@ -1030,6 +1084,7 @@ html{font-size:16px;}
     <div class="header-actions">
       <span id="cloud-status" style="font-size:11px;color:var(--dim);margin-right:6px;"></span>
       <button class="btn btn-ghost" onclick="reupload()">↑ New CSV</button>
+      <button class="btn btn-ghost" onclick="openBriefing()" id="briefing-btn">📤 Weekly Briefing</button>
       <button class="btn btn-outline" onclick="exportSnapshot()">⬇ Export Snapshot</button>
       <button class="btn btn-gold" onclick="printReport()">🖨 Print / PDF</button>
     </div>
@@ -1037,6 +1092,55 @@ html{font-size:16px;}
 
   <!-- Priority Alert Banner -->
   <div class="priority-banner" id="priority-banner"></div>
+
+  <!-- ════ WEEKLY BRIEFING PANEL ════ -->
+  <div id="briefing-panel">
+    <div class="briefing-panel-header">
+      <span class="briefing-panel-title">📤 Weekly Channel Briefing</span>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span id="briefing-notes-status" class="briefing-slack-status"></span>
+        <button class="briefing-close-btn" onclick="closeBriefing()" title="Close">×</button>
+      </div>
+    </div>
+
+    <div class="briefing-tabs">
+      <button class="briefing-tab active" id="btab-edit" onclick="switchBriefingTab('edit')">✏️ Edit</button>
+      <button class="briefing-tab" id="btab-preview" onclick="switchBriefingTab('preview')">👁 Preview</button>
+    </div>
+
+    <!-- Edit tab -->
+    <div id="briefing-edit-view">
+      <div class="briefing-table-wrap">
+        <table class="briefing-table" id="briefing-table">
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th title="Titles/week goal">Cadence</th>
+              <th>Scheduled out to</th>
+              <th>Drafts ready</th>
+              <th>Notes (optional)</th>
+            </tr>
+          </thead>
+          <tbody id="briefing-tbody"></tbody>
+        </table>
+      </div>
+      <div class="briefing-actions">
+        <button class="btn btn-outline" onclick="saveBriefingNotes()">💾 Save notes & cadence</button>
+        <button class="btn btn-ghost" onclick="switchBriefingTab('preview')">👁 Preview message →</button>
+      </div>
+    </div>
+
+    <!-- Preview tab -->
+    <div id="briefing-preview-view" style="display:none">
+      <div class="briefing-preview-wrap" id="briefing-preview"></div>
+      <div class="briefing-actions">
+        <button class="btn btn-outline" onclick="copyBriefingMessage()">📋 Copy message</button>
+        <button class="btn btn-gold" id="briefing-slack-btn" onclick="sendBriefingToSlack()">Send to #ops-channels</button>
+        <span id="briefing-slack-status" class="briefing-slack-status"></span>
+        <button class="btn btn-ghost" onclick="switchBriefingTab('edit')">← Edit</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Weekly Publishing Summary -->
   <div class="velocity-section" id="weekly-summary"></div>
@@ -3094,6 +3198,201 @@ function loadDemo() {
     // No cloud data — upload screen is already visible, nothing else to do
   }
 })();
+
+/* ════ WEEKLY BRIEFING JS ════ */
+// Cadence lookup from Notion "Stash TV Channel Delivery Cadence" database
+// Goal Weekly Delivery Cadence per channel pattern (lowercase match)
+const BRIEFING_NOTION_CADENCE = [
+  { pattern: 'watch free movies every day',     cadence: 7 },
+  { pattern: 'watch free movies all day',       cadence: 7 },
+  { pattern: 'watch free movies digest',        cadence: 7 },
+  { pattern: 'free movies catalog',             cadence: 7 },
+  { pattern: 'free movie catalog',              cadence: 7 },
+  { pattern: 'stash movies',                    cadence: 7 },
+  { pattern: 'stash - free movies',             cadence: 7 },
+  { pattern: 'free movies',                     cadence: 7 },
+];
+// Everything not matched above defaults to 4
+
+// Per-channel state: { [channelName]: { cadence, notes } }
+let briefingConfig = {};
+let briefingLoaded = false;
+
+function _cadenceFromNotion(channelName) {
+  const lc = channelName.toLowerCase();
+  for (const {pattern, cadence} of BRIEFING_NOTION_CADENCE) {
+    if (lc.includes(pattern)) return cadence;
+  }
+  return 4;
+}
+
+function _scheduledOutDate(channel) {
+  const today = new Date().toISOString().slice(0, 10);
+  let max = null;
+  (APP.items || []).forEach(item => {
+    if (item.channel !== channel) return;
+    if (item.status !== 'scheduled') return;
+    if (!item.publishDate) return;
+    const d = item.publishDate instanceof Date
+      ? item.publishDate.toISOString().slice(0, 10)
+      : String(item.publishDate).slice(0, 10);
+    if (!max || d > max) max = d;
+  });
+  if (!max) return null;
+  // Format as M/D
+  const [y, m, d] = max.split('-');
+  return `${parseInt(m)}/${parseInt(d)}`;
+}
+
+function _draftCounts(channel) {
+  let ready = 0, blocked = 0;
+  (APP.items || []).forEach(item => {
+    if (item.channel !== channel) return;
+    if (item.status === 'draft') ready++;
+    else if (item.status === 'draft_blocked' || item.status === 'transcoding') blocked++;
+  });
+  return { ready, blocked };
+}
+
+function openBriefing() {
+  const panel = document.getElementById('briefing-panel');
+  panel.style.display = 'block';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Load saved config from cloud, then render
+  _loadBriefingConfig().then(() => _renderBriefingTable());
+}
+
+function closeBriefing() {
+  document.getElementById('briefing-panel').style.display = 'none';
+}
+
+function switchBriefingTab(tab) {
+  document.getElementById('briefing-edit-view').style.display   = tab === 'edit'    ? '' : 'none';
+  document.getElementById('briefing-preview-view').style.display = tab === 'preview' ? '' : 'none';
+  document.getElementById('btab-edit').classList.toggle('active',    tab === 'edit');
+  document.getElementById('btab-preview').classList.toggle('active', tab === 'preview');
+  if (tab === 'preview') _renderBriefingPreview();
+}
+
+async function _loadBriefingConfig() {
+  if (briefingLoaded) return;
+  briefingLoaded = true;
+  try {
+    const resp = await fetch('/api/briefing');
+    const json = await resp.json();
+    if (json.ok && json.config) briefingConfig = json.config;
+  } catch(e) { /* offline or not yet deployed — use defaults */ }
+}
+
+function _renderBriefingTable() {
+  const tbody = document.getElementById('briefing-tbody');
+  if (!tbody) return;
+  const channels = APP.channels || [];
+  tbody.innerHTML = channels.map(ch => {
+    const cfg = briefingConfig[ch] || {};
+    const cadence = cfg.cadence != null ? cfg.cadence : _cadenceFromNotion(ch);
+    const notes   = cfg.notes || '';
+    const scheduledOut = _scheduledOutDate(ch);
+    const { ready, blocked } = _draftCounts(ch);
+    const outStr = scheduledOut ? scheduledOut : '<span class="briefing-stat-dim">—</span>';
+    const draftStr = ready > 0 || blocked > 0
+      ? `<span class="briefing-stat">${ready}</span>${blocked > 0 ? `<span class="briefing-stat-dim"> (+${blocked} blocked)</span>` : ''}`
+      : `<span class="briefing-stat-dim">0</span>`;
+    return `<tr>
+      <td class="briefing-ch-name">${ch}</td>
+      <td><input class="briefing-input briefing-cadence-input" type="number" min="1" max="20" value="${cadence}" data-ch="${ch}" data-field="cadence" onchange="_briefingFieldChange(this)"></td>
+      <td>${outStr}</td>
+      <td>${draftStr}</td>
+      <td><input class="briefing-input" type="text" placeholder="Optional note…" value="${notes.replace(/"/g,'&quot;')}" data-ch="${ch}" data-field="notes" oninput="_briefingFieldChange(this)"></td>
+    </tr>`;
+  }).join('');
+}
+
+function _briefingFieldChange(el) {
+  const ch = el.dataset.ch;
+  const field = el.dataset.field;
+  if (!briefingConfig[ch]) briefingConfig[ch] = {};
+  briefingConfig[ch][field] = field === 'cadence' ? parseInt(el.value) || 4 : el.value;
+}
+
+async function saveBriefingNotes() {
+  const statusEl = document.getElementById('briefing-notes-status');
+  statusEl.textContent = '↻ Saving…';
+  try {
+    const resp = await fetch('/api/briefing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', config: briefingConfig }),
+    });
+    const json = await resp.json();
+    statusEl.textContent = json.ok ? '✓ Saved' : '✗ ' + (json.error || 'Save failed');
+    if (json.ok) setTimeout(() => { statusEl.textContent = ''; }, 3000);
+  } catch(e) {
+    statusEl.textContent = '✗ Could not reach server';
+  }
+}
+
+function _generateBriefingMessage() {
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const channels = APP.channels || [];
+  let lines = [`*📋 Weekly Channel Briefing — ${dateStr}*\n`];
+  channels.forEach(ch => {
+    const cfg = briefingConfig[ch] || {};
+    const cadence = cfg.cadence != null ? cfg.cadence : _cadenceFromNotion(ch);
+    const notes = (cfg.notes || '').trim();
+    const scheduledOut = _scheduledOutDate(ch);
+    const { ready, blocked } = _draftCounts(ch);
+    const totalDraft = ready + blocked;
+    // Short channel label
+    const label = ch.replace(/^Stash - /i,'').replace(/^Stash /i,'').replace(/ on YouTube$/i,'').replace(/ \(.*\)$/,'').trim();
+    lines.push(`*${label}:*`);
+    lines.push(`Cadence: ${cadence}x titles a week`);
+    lines.push(`Date Channel scheduled out to: ${scheduledOut || 'TBD'}`);
+    const draftLine = notes ? `# of draft titles able to publish: ${totalDraft} (${notes})` : `# of draft titles able to publish: ${totalDraft}`;
+    lines.push(draftLine);
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
+function _renderBriefingPreview() {
+  const el = document.getElementById('briefing-preview');
+  if (el) el.textContent = _generateBriefingMessage();
+}
+
+function copyBriefingMessage() {
+  const msg = _generateBriefingMessage();
+  navigator.clipboard.writeText(msg).then(() => {
+    const btn = document.querySelector('[onclick="copyBriefingMessage()"]');
+    if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => btn.textContent = '📋 Copy message', 2000); }
+  });
+}
+
+async function sendBriefingToSlack() {
+  const btn = document.getElementById('briefing-slack-btn');
+  const statusEl = document.getElementById('briefing-slack-status');
+  btn.disabled = true;
+  statusEl.textContent = '↻ Sending…';
+  const message = _generateBriefingMessage();
+  try {
+    const resp = await fetch('/api/briefing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'slack', message }),
+    });
+    const json = await resp.json();
+    if (json.ok) {
+      statusEl.textContent = '✓ Sent to #ops-channels!';
+      setTimeout(() => { statusEl.textContent = ''; }, 5000);
+    } else {
+      statusEl.textContent = '✗ ' + (json.error || 'Failed to send');
+    }
+  } catch(e) {
+    statusEl.textContent = '✗ Could not reach server';
+  }
+  btn.disabled = false;
+}
 
 /* ════ TERRITORY AUDIT JS ════ */
 // ── State ──────────────────────────────────────────────────────────────
