@@ -21,10 +21,14 @@ function getCookie(request, name) {
 export default async function middleware(request) {
   const { pathname } = new URL(request.url);
 
-  // Always pass through: login page, auth API, and Vercel internals
+  // Always pass through: login page, auth APIs, and Vercel internals.
+  // /api/youtube-auth must be bypassed because Google redirects back to it
+  // as a cross-site navigation — SameSite=Strict blocks the session cookie
+  // on that first request, so the middleware would otherwise drop the OAuth code.
   if (
     pathname === '/login' ||
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/youtube-auth') ||
     pathname.startsWith('/_vercel')
   ) {
     return; // undefined = pass through
