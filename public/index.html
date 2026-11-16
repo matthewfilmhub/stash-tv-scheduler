@@ -4527,7 +4527,7 @@ function ytExceptList(ownSet){
   return YT_TERRITORIES.filter(t=>!own.has(t)).join(',');
 }
 // Copy-paste block: primary "everywhere except" list + collapsed "own these" list (+ optional removals)
-function ytPasteBlock(ownSet, removeArr, cls){
+function ytPasteBlock(ownSet, removeArr, cls, removeLabel){
   const exceptStr=ytList(ytExceptList(ownSet).split(','));
   const ownStr=ytList(ownSet);
   const removeStr=ytList(removeArr);
@@ -4538,7 +4538,7 @@ function ytPasteBlock(ownSet, removeArr, cls){
       ${exceptStr?`<button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${q(exceptStr)}',this)">Copy</button>`:''}
     </div>
     ${removeStr?`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;">
-      <span><strong>② Territories to remove</strong> <span style="font-size:0.7rem;color:var(--text-dim)">(active M&TV conflicts only)</span><br><strong style="font-family:'Courier New',monospace">${removeStr}</strong></span>
+      <span><strong>② Territories to remove</strong> <span style="font-size:0.7rem;color:var(--text-dim)">(${removeLabel||'active M&TV conflicts only'})</span><br><strong style="font-family:'Courier New',monospace;word-break:break-all">${removeStr}</strong></span>
       <button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${q(removeStr)}',this)">Copy</button>
     </div>`:''}
     <details class="ta-subdetails">
@@ -4606,7 +4606,13 @@ function renderBlock(r) {
       actHtml=ytPasteBlock(fullSet, r.overlap, 'act-do');
     }
   } else if(r.status==='compliance'){
-    actHtml=`<div class="act-block act-warn">⚡ <strong>${r.compliance.join(', ')}</strong> ${r.compliance.length===1?'is':'are'} on Stash but not in Filmhub avail — review and consider removing.</div>`;
+    // Stash should own only what's in Filmhub avail and not under an active M&TV license
+    const ownSet=[...new Set([...r.remaining.filter(t=>!r.compliance.includes(t)),...restorable])].sort();
+    if(!ownSet.length){
+      actHtml=`<div class="act-block act-gone">⛔ <strong>Own NO territories</strong> — Filmhub avail is fully covered by active M&TV licenses. Remove all territories from this Stash asset.</div>`;
+    } else {
+      actHtml=ytPasteBlock(ownSet, r.compliance, 'act-warn', 'on Stash but not in Filmhub avail');
+    }
   } else if(!hasRestore){
     actHtml=`<div class="act-block act-ok">✓ No territory overlap — no CMS update required for this title.</div>`;
   } else {
