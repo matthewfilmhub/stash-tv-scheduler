@@ -817,6 +817,17 @@ html{font-size:16px;}
 .copy-btn:hover{opacity:1;}
 
 /* ── Supplemental ── */
+.ta-details>summary{cursor:pointer;font-size:0.68rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin:2px 0 9px;list-style:none;user-select:none;}
+.ta-details>summary::-webkit-details-marker{display:none;}
+.ta-details>summary::before{content:'▸ ';}
+.ta-details[open]>summary::before{content:'▾ ';}
+.ta-details>summary:hover{color:var(--text-muted);}
+.ta-subdetails{border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;}
+.ta-subdetails>summary{cursor:pointer;font-size:0.72rem;list-style:none;user-select:none;}
+.ta-subdetails>summary::-webkit-details-marker{display:none;}
+.ta-subdetails>summary::before{content:'▸ ';}
+.ta-subdetails[open]>summary::before{content:'▾ ';}
+.ta-expand-btn{padding:2px 9px;border-radius:3px;font-size:0.65rem;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-family:inherit;}
 .t-supp{margin-top:7px;font-size:0.66rem;color:var(--text-dim);line-height:1.65;}
 .t-supp .hi{color:var(--orange);font-family:'Courier New',monospace;}
 
@@ -4426,7 +4437,9 @@ function renderReport() {
       <div class="ta-progress-track"><div class="ta-progress-fill" id="taProgressFill" style="width:${pct}%"></div></div>
       <span id="taProgressText" style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap">${done} / ${report.length} completed (${pct}%)</span>
       <span id="taSaveIndicator" class="ta-save-indicator"></span>
-      <button onclick="clearTAProgress()" style="padding:2px 9px;border-radius:3px;font-size:0.65rem;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-family:inherit;margin-left:auto;">Reset progress</button>
+      <button class="ta-expand-btn" style="margin-left:auto" onclick="taSetAllDetails(true)">Expand all</button>
+      <button class="ta-expand-btn" onclick="taSetAllDetails(false)">Collapse all</button>
+      <button onclick="clearTAProgress()" style="padding:2px 9px;border-radius:3px;font-size:0.65rem;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;font-family:inherit;">Reset progress</button>
     </div>`;
 
   let progressEl=document.getElementById('taProgressWrap');
@@ -4499,6 +4512,53 @@ function setReportPage(p) {
   document.getElementById('reportContent').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+// ── YouTube paste helpers ─────────────────────────────────────────────
+// Every ISO 3166-1 alpha-2 code (+ XK) — the set YouTube CMS territory fields accept.
+const YT_TERRITORIES = 'AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW'.split(' ');
+const YT_TERR_SET = new Set(YT_TERRITORIES);
+// Normalize any territory list (whatever format it came from) into YouTube paste format:
+// valid 2-letter codes only, uppercase, de-duplicated, sorted, comma-separated with no spaces.
+function ytList(arr){
+  return [...new Set((arr||[]).map(t=>String(t).trim().toUpperCase()).filter(t=>YT_TERR_SET.has(t)))].sort().join(',');
+}
+// "Own everywhere except" list = every territory NOT in the set Stash should own.
+function ytExceptList(ownSet){
+  const own=new Set((ownSet||[]).map(t=>String(t).trim().toUpperCase()));
+  return YT_TERRITORIES.filter(t=>!own.has(t)).join(',');
+}
+// Copy-paste block: primary "everywhere except" list + collapsed "own these" list (+ optional removals)
+function ytPasteBlock(ownSet, removeArr, cls){
+  const exceptStr=ytList(ytExceptList(ownSet).split(','));
+  const ownStr=ytList(ownSet);
+  const removeStr=ytList(removeArr);
+  const q=v=>v.replace(/'/g,"\\'");
+  return `<div class="act-block ${cls}" style="display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+      <span><strong>① Own everywhere except</strong> <span style="font-size:0.7rem;color:var(--text-dim)">(paste into YouTube “Own everywhere except selected territories”)</span><br><strong style="font-family:'Courier New',monospace;word-break:break-all">${exceptStr||'— none (own everywhere)'}</strong></span>
+      ${exceptStr?`<button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${q(exceptStr)}',this)">Copy</button>`:''}
+    </div>
+    ${removeStr?`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;">
+      <span><strong>② Territories to remove</strong> <span style="font-size:0.7rem;color:var(--text-dim)">(active M&TV conflicts only)</span><br><strong style="font-family:'Courier New',monospace">${removeStr}</strong></span>
+      <button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${q(removeStr)}',this)">Copy</button>
+    </div>`:''}
+    <details class="ta-subdetails">
+      <summary>Own only these territories <span style="font-size:0.7rem;color:var(--text-dim)">(alternative — full ownership list)</span></summary>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-top:6px;">
+        <strong style="font-family:'Courier New',monospace;word-break:break-all">${ownStr||'—'}</strong>
+        ${ownStr?`<button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${q(ownStr)}',this)">Copy</button>`:''}
+      </div>
+    </details>
+  </div>`;
+}
+
+// Territory-details collapse state (collapsed by default; remembered per title until reload)
+const taExpanded=new Set();
+function taToggleDetails(el){ const id=el.dataset.tid; if(el.open)taExpanded.add(id); else taExpanded.delete(id); }
+function taSetAllDetails(open){
+  getFilteredRows().forEach(r=>{ if(open)taExpanded.add(r.mtv.id); else taExpanded.delete(r.mtv.id); });
+  document.querySelectorAll('#reportContent details.ta-details').forEach(d=>{ d.open=open; });
+}
+
 function renderBlock(r) {
   const name=r.mtv.name;
   const channel=r.cms?.channel||r.mtv.channel||'';
@@ -4543,30 +4603,17 @@ function renderBlock(r) {
     if(r.remaining.length===0 && restorable.length===0){
       actHtml=`<div class="act-block act-gone">⛔ All territories will be removed from Stash — confirm this is intended before updating CMS.</div>`;
     } else {
-      actHtml=`<div class="act-block act-do" style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-          <span><strong>① Set territories to</strong> <span style="font-size:0.7rem;color:var(--text-dim)">(paste into CMS territory field)</span><br><strong style="font-family:'Courier New',monospace">${fullStr}</strong></span>
-          <button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${fullStr.replace(/'/g,"\\'")}',this)">Copy</button>
-        </div>
-        ${removeStr?`<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;">
-          <span><strong>② Territories to remove</strong> <span style="font-size:0.7rem;color:var(--text-dim)">(active M&TV conflicts only)</span><br><strong style="font-family:'Courier New',monospace">${removeStr}</strong></span>
-          <button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${removeStr.replace(/'/g,"\\'")}',this)">Copy</button>
-        </div>`:''}
-      </div>`;
+      actHtml=ytPasteBlock(fullSet, r.overlap, 'act-do');
     }
   } else if(r.status==='compliance'){
     actHtml=`<div class="act-block act-warn">⚡ <strong>${r.compliance.join(', ')}</strong> ${r.compliance.length===1?'is':'are'} on Stash but not in Filmhub avail — review and consider removing.</div>`;
   } else if(!hasRestore){
     actHtml=`<div class="act-block act-ok">✓ No territory overlap — no CMS update required for this title.</div>`;
   } else {
-    // restore-only status: show what to add back
-    actHtml=`<div class="act-block act-restore">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-        <span>↑ <strong>Restore expired territories to Stash:</strong><br><strong style="font-family:'Courier New',monospace">${restorable.join(', ')}</strong>
-        <span style="font-size:0.65rem;color:var(--text-dim);margin-left:6px;">M&TV license ended — these can be re-added to the Stash CMS asset</span></span>
-        <button class="copy-btn" style="flex-shrink:0" onclick="doCopy('${restorable.join(', ').replace(/'/g,"\\'")}',this)">Copy</button>
-      </div>
-    </div>`;
+    // restore-only status: expired M&TV territories go back to Stash
+    actHtml=`<div class="act-block act-restore" style="margin-bottom:6px">↑ <strong>Restore expired territories to Stash:</strong> <strong style="font-family:'Courier New',monospace">${ytList(restorable)}</strong>
+      <span style="font-size:0.65rem;color:var(--text-dim);margin-left:6px;">M&TV license ended — these can be re-added to the Stash CMS asset</span></div>`
+      + ytPasteBlock(fullSet, [], 'act-restore');
   }
 
   // Restore block — no longer shown separately (folded into actHtml above)
@@ -4600,6 +4647,8 @@ function renderBlock(r) {
       </div>
     </div>
     <div class="t-body">
+      <details class="ta-details" data-tid="${esc(id)}" ontoggle="taToggleDetails(this)"${taExpanded.has(id)?' open':''}>
+      <summary>Territory details</summary>
       <div class="terr-grid" style="grid-template-columns:${hasRestore?'1fr 1fr 1fr 1fr':'1fr 1fr 1fr'}">
         <div><div class="tg-lbl">Current CMS territories</div><div class="tg-tags">${currTags}</div></div>
         <div><div class="tg-lbl">Remove — active M&TV</div><div class="tg-tags">${remTags}</div></div>
@@ -4607,6 +4656,7 @@ function renderBlock(r) {
         ${hasRestore?`<div><div class="tg-lbl" style="color:#06b6d4">↑ Restore — expired M&TV</div><div class="tg-tags">${restorable.map(t=>`<span class="tag tag-restore">${t}</span>`).join('')}</div></div>`:''}
       </div>
       <div class="t-supp">${expiredLine}${fhLine}<div>M&TV windows: ${winLine||'—'}</div></div>
+      </details>
       ${actHtml}${restoreHtml}
     </div>
   </div>`;
